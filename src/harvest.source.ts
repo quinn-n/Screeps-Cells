@@ -1,4 +1,4 @@
-import type { BuildingID, RoomID } from "./typedefs";
+import type { BuildingID, RoomID } from "./types";
 
 const cellConfig = require("./config.cell");
 const _ = require("lodash");

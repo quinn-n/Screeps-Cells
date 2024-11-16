@@ -3,7 +3,7 @@ resourceMgr
 API that manages resource transfers between individual cells
 */
 
-import type { RoomID } from "./typedefs";
+import type { RoomID } from "./types";
 
 function run() {
 

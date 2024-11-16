@@ -7,7 +7,7 @@ Functions to manage claim creeps
 const _ = require("lodash");
 const cellConfig = require("./config.cell");
 const utilityCreep = require("./utility.creep");
-import type { RoomID } from "./typedefs";
+import type { RoomID } from "./types";
 
 function run(creep: Creep) {
     //var reserveCfg = cellConfig[creep.memory.room][creep.memory.role];

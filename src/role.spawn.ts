@@ -9,7 +9,7 @@ const misc = require("./misc");
 
 const cellConfig = require("./config.cell");
 
-import type { RoomID, Segment } from "./typedefs";
+import type { RoomID, Segment } from "./types";
 import type { CreepType } from "./role.room";
 
 /**

@@ -25,7 +25,7 @@ const roleClaim = require("./role.claim");
 const roleLogistics = require("./role.logistics");
 const roleMineralHarvester = require("./role.mineralHarvester");
 
-import type { RoomID } from "./typedefs";
+import type { RoomID } from "./types";
 
 export type CreepType = "harvester" | "constructor" | "upgrader" | "repair" | "security" | "claim" | "logistics" | "mineralHarvester";
 
