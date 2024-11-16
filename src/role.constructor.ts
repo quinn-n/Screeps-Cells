@@ -4,11 +4,13 @@ role.constructor.js
 Functions to manage construction creeps
 */
 
+import type { HarvestingCreep } from "./types";
+
 const _ = require("lodash");
 const harvestSource = require("./harvest.source");
 const utilityCreep = require("./utility.creep");
 
-function run(creep: Creep) {
+function run(creep: HarvestingCreep) {
     if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.harvesting = true;
     }
@@ -61,7 +63,7 @@ function run(creep: Creep) {
 Repairs structures in the creep's room
 */
 function repair(creep: Creep) {
-    const structures = _.filter(creep.room.find(FIND_STRUCTURES), (structure) => structure.hits < structure.hitsMax);
+    const structures = _.filter(creep.room.find(FIND_STRUCTURES), (structure: Structure) => structure.hits < structure.hitsMax);
     for (const s in structures) {
         const structure = structures[s];
         const repairErr = creep.repair(structure);
