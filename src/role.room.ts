@@ -25,7 +25,7 @@ const roleClaim = require("./role.claim");
 const roleLogistics = require("./role.logistics");
 const roleMineralHarvester = require("./role.mineralHarvester");
 
-import type { RoomID } from "./types";
+import type { BaseCreep, RoomID } from "./types";
 
 export type CreepType = "harvester" | "constructor" | "upgrader" | "repair" | "security" | "claim" | "logistics" | "mineralHarvester";
 
@@ -40,7 +40,7 @@ function run(roomID: RoomID) {
 Runs creep functions
 */
 function runCreeps(roomID: RoomID) {
-    const creeps = _.filter(Game.creeps, (creep: Creep) => creep.memory.home === roomID && !creep.spawning);
+    const creeps = _.filter(Game.creeps, (creep: BaseCreep) => creep.memory.home === roomID && !creep.spawning);
     for (const creep of creeps) {
         if (creep.room.name !== creep.memory.room) {
             utilityCreep.goToRoom(creep, creep.memory.room);
@@ -163,15 +163,15 @@ function sendExtraditions(homeRoom: RoomID) {
             }
 			const creeps = _.filter(
 				Game.creeps,
-				(creep) =>
-					creep.memory.home === home_room &&
+				(creep: BaseCreep) =>
+					creep.memory.home === homeRoom &&
 					creep.memory.room === creep.memory.home &&
 					creep.memory.role === creepType,
 			);
 			const nExtradited = _.filter(
 				Game.creeps,
-				(creep) =>
-					creep.memory.home === home_room &&
+				(creep: BaseCreep) =>
+					creep.memory.home === homeRoom &&
 					creep.memory.room === room &&
 					creep.memory.role === creepType,
 			).length;
@@ -196,7 +196,7 @@ Returns the number of creeps belonging to a room
 function getCreepsForRoom(homeRoom: RoomID, role: CreepType) {
     let n = 0;
     for (const c in Game.creeps) {
-        const creep = Game.creeps[c];
+        const creep = Game.creeps[c] as BaseCreep;
         if (creep.memory.home === homeRoom && creep.memory.role === role) {
             n++;
         }
