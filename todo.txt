@@ -1,0 +1,12 @@
+  - Spawn creeps as needed. (Ex. spawn # of construction creeps dependant on how much energy is required by constructions)
+  - Spawn harvesters based around remaining energy available in sources per regen cycle.
+    - Will require working out average energy extracted per SEGMENT.
+
+  - Spawn creeps as needed. (Ex. spawn # of construction creeps dependant on how much energy is required by constructions)
+    - Spawn 2 claim for each room in RESERVE_ROOM
+  
+  - Allocate with body parts rather than number of creeps!
+    - this will also allow to calculate moves required based on distance
+      and similar things like WORKs required per source to drain them completely per cycle
+  
+  - Save roads in memory in case they decay.

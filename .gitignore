@@ -1,0 +1,7 @@
+*.js
+dist/
+
+**/config.cell.*
+
+.vscode
+node_modules

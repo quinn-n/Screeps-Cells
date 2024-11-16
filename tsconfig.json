@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"target": "ES6",
+		"module": "commonjs",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		// Build into another directory to keep the game happy and keep this one from being a mess.
+		"outDir": "../cells-dist/",
+		"lib": ["es2016", "dom"]
+	},
+	"include": ["src/**/*"]
+}
