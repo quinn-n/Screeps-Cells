@@ -20,3 +20,12 @@ export interface BaseCreepMemory extends CreepMemory {
 export interface BaseCreep extends Creep {
     memory: BaseCreepMemory;
 }
+
+export interface HarvestingCreepMemory extends BaseCreepMemory {
+    harvesting: boolean;
+    targetSource: Id<Source> | null;
+}
+
+export interface HarvestingCreep extends BaseCreep {
+    memory: HarvestingCreepMemory;
+}

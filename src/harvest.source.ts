@@ -1,4 +1,4 @@
-import type { BuildingID, RoomID } from "./types";
+import type { BaseCreep, BuildingID, HarvestingCreep } from "./types";
 
 const cellConfig = require("./config.cell");
 const _ = require("lodash");
@@ -7,9 +7,10 @@ const EXCLUDED_SOURCES: BuildingID[] = [
 ];
 
 //Harvests source and manages how many creeps are assigned to each source
-function harvestSource(creep: Creep) {
+function harvestSource(creep: HarvestingCreep) {
     if (creep.memory.targetSource) {
-        const res = Game.getObjectById(creep.memory.targetSource);
+        // biome-ignore lint/style/noNonNullAssertion: Code won't run if creep.memory.targetSource is null thanks to the if statement above.
+        const res = Game.getObjectById(creep.memory.targetSource)!;
         const err = creep.harvest(res);
         if (err === ERR_NOT_IN_RANGE) {
             creep.moveTo(res, {maxRooms: 1});
@@ -32,7 +33,11 @@ function harvestSource(creep: Creep) {
     }
 }
 
-function harvestMineral(creep: Creep) {
+/*
+
+Not implemented yet
+
+function harvestMineral(creep: MineralHarvestingCreep) {
     if (creep.memory.targetMineral) {
         const res = Game.getObjectById(creep.memory.targetMineral);
         const err = creep.harvest(res);
@@ -45,17 +50,26 @@ function harvestMineral(creep: Creep) {
         creep.memory.targetMineral = getTargetMineral(creep);
     }
 }
+*/
 
 /*
 Pulls energy from the nearest energy storage building
 returns OK on success and ERR_INVALID_TARGET if not valid container can be found
 */
 function pullFromStorage(creep: Creep, resource: ResourceConstant) {
-    const structures = _.filter(creep.room.find(FIND_STRUCTURES), (structure) => [STRUCTURE_CONTAINER, STRUCTURE_STORAGE].includes(structure.structureType) && structure.store[RESOURCE_ENERGY] > 0);
+    let structures = _.filter(
+        creep.room.find(FIND_STRUCTURES),
+        (structure: Structure) => [
+            STRUCTURE_CONTAINER as StructureConstant,
+            STRUCTURE_STORAGE as StructureConstant
+        ].includes(structure.structureType)
+        && (structure as StructureContainer | StructureStorage).store[RESOURCE_ENERGY] > 0
+    );
+
     if (!structures.length) {
         return ERR_INVALID_TARGET;
     }
-    sortOnDist(creep, structures);
+    structures = sortOnDist(creep, structures);
     let withdrawAmmout = creep.store.getFreeCapacity(resource);
     if (structures[0].store[resource] < withdrawAmmout) {
         withdrawAmmout = structures[0].store[resource];
@@ -74,30 +88,8 @@ function pullFromStorage(creep: Creep, resource: ResourceConstant) {
     return OK;
 }
 
-function clearTarget(creep: Creep) {
-    creep.memory.targetSource = "";
-}
-
-//Returns possible target sources by room
-function getAvailableTargetResources(room: RoomID) {
-    const nTargets = getnTargetSources(room);
-    //Get sources as a list, excluding filtered sources
-    const sources = [];
-    for (const sid in nTargets) {
-        if (EXCLUDED_SOURCES.includes(sid))
-            continue;
-        sources.push(Game.getObjectById(sid));
-    }
-    //Search for first source with an empty adjacent spot
-    for (const s in sources) {
-        const source = sources[s];
-        const nSpaces = getEmptySpace(source);
-        if (nTargets[source.id] < nSpaces) {
-            return source.id;
-        }
-    }
-    //console.log("Found no more free spaces.");
-    return "";
+function clearTarget(creep: HarvestingCreep) {
+    creep.memory.targetSource = null;
 }
 
 /*
@@ -107,7 +99,7 @@ returns ERR_INVALID_TARGET if no resources were found
 */
 function pickupResource(creep: Creep) {
     //Filter out resources on the edge of the map
-    const resources = _.filter(creep.room.find(FIND_DROPPED_RESOURCES), (resource) => resource.pos.y > 0 && resource.pos.y < 49 && resource.pos.x > 0 && resource.pos.x < 49 && resource.resourceType === RESOURCE_ENERGY);
+    const resources = _.filter(creep.room.find(FIND_DROPPED_RESOURCES), (resource: Resource) => resource.pos.y > 0 && resource.pos.y < 49 && resource.pos.x > 0 && resource.pos.x < 49 && resource.resourceType === RESOURCE_ENERGY);
     if (!resources.length) {
         return ERR_INVALID_TARGET;
     }
@@ -123,18 +115,14 @@ returns OK if a tombstone were found
 returns ERR_INVALID_TARGET if no tombstone was found
 */
 function pickupTombstone(creep: Creep) {
-    const tombstones = creep.room.find(FIND_TOMBSTONES);
+    const tombstones = _.filter(
+        creep.room.find(FIND_TOMBSTONES),
+        (tombstone: Tombstone) => tombstone.store[RESOURCE_ENERGY] > 0
+    );
     if (!tombstones.length) {
         return ERR_INVALID_TARGET;
     }
-    //Find a non-empty tombstone
-    let tombstone: Tombstone;
-    for (const t in tombstones) {
-        tombstone = tombstones[t];
-        if (tombstone.store[RESOURCE_ENERGY] > 0) {
-            break;
-        }
-    }
+    const tombstone = tombstones[0];
     if (tombstone.store[RESOURCE_ENERGY] === 0) {
         console.log("Got zero energy tombstone.");
     }
@@ -156,19 +144,18 @@ function pickupTombstone(creep: Creep) {
 /*
 deposits resources in nearest container by order of priority in config.creeps
 */
-function depositResources(creep: Creep, res: ResourceConstant = RESOURCE_ENERGY) {
+function depositResources(creep: BaseCreep, res: ResourceConstant = RESOURCE_ENERGY) {
     if (creep.memory.home === undefined) {
         console.log(`Creep ${creep.name} got undefined room.`);
     }
     const configCreep = cellConfig[creep.memory.home][creep.memory.role];
     for (const sType in configCreep.DEPOSIT_STRUCTURES) {
         const structureType = configCreep.DEPOSIT_STRUCTURES[sType];
-        const structures = _.filter(creep.room.find(FIND_STRUCTURES), (structure) => structure.structureType === structureType && structure.store.getFreeCapacity(res) > 0);
-        /*
-        if (creep.memory.role === "mineralHarvester") {
-            console.log("mineralHarvester in room " + creep.room.name + " got " + structures.length + " structures.");
-        }
-        */
+        const structures = _.filter(
+            creep.room.find(FIND_STRUCTURES),
+            (structure: Structure) => structure.structureType === structureType
+            && (structure as StructureContainer | StructureStorage).store.getFreeCapacity(res) > 0
+        );
         if (!structures.length) {
             continue;
         }
@@ -191,14 +178,15 @@ function depositResources(creep: Creep, res: ResourceConstant = RESOURCE_ENERGY)
 function getTargetResource(creep: Creep) {
     const nTargets = getnTargetSources(creep.room);
     //Get sources as a list, excluding filtered sources
-    const sources = [];
+    let sources: Source[] = [];
     for (const sid in nTargets) {
         if (EXCLUDED_SOURCES.includes(sid))
             continue;
-        sources.push(Game.getObjectById(sid));
+        // biome-ignore lint/style/noNonNullAssertion: sid guaranteed to be a valid source
+        sources.push(Game.getObjectById(sid)!);
     }
     //Sort sources by distance to creep
-    sortOnDist(creep, sources);
+    sources = sortOnDist(creep, sources);
     //Search for first source with an empty adjacent spot
     for (const s in sources) {
         const source = sources[s];
@@ -207,24 +195,23 @@ function getTargetResource(creep: Creep) {
             return source.id;
         }
     }
-    //console.log("Found no more free spaces.");
-    return "";
+    return null; 
 }
 
 //Returns a map containing the number of creeps that have targeted each source in the same room
 function getnTargetSources(room: Room) {
     //Setup map
-    const nTargets = {};
+    const nTargets: {[key: Id<Source>]: number} = {};
     const sources = room.find(FIND_SOURCES_ACTIVE);
     for (const s in sources) {
         const source = sources[s];
         nTargets[source.id] = 0;
     }
     for (const c in Game.creeps) {
-        const creep = Game.creeps[c];
+        const creep = Game.creeps[c] as HarvestingCreep;
         const tgtSource = creep.memory.targetSource;
         //Ignore creeps that don't use targeted sources
-        if (tgtSource === "" || tgtSource === undefined || tgtSource === -1)
+        if (tgtSource === null || tgtSource === undefined)
             continue;
         if (nTargets[tgtSource] === undefined)
             continue;
@@ -232,6 +219,10 @@ function getnTargetSources(room: Room) {
     }
     return nTargets;
 }
+
+/*
+
+Not implemented yet
 
 function getTargetMineral(creep: Creep) {
 }
@@ -256,6 +247,7 @@ function getnTargetMinerals(room: Room) {
     }
     return nTargets;
 }
+*/
 
 //Returns the number of empty spaces adjacent to a source
 function getEmptySpace(source: Source) {
@@ -272,19 +264,22 @@ function getEmptySpace(source: Source) {
 }
 
 //Sorts sources based on their distance to the creep as the crow flies
-function sortOnDist(creep: Creep, sources: Source[]) {
+function sortOnDist(creep: Creep, sources: Source[]): Source[] {
     //Find distance to each individual source
+    const sourceDistances: {dist: number, source: Source}[] = [];
     for (const source of sources) {
-        source.dist = dist(source.pos, creep.pos);
+        sourceDistances.push({dist: dist(source.pos, creep.pos), source});
     }
     //Perform bubble sort on sources
-    for (let n = 0; n < sources.length; n++) {
-        for (let i = 0; i < sources.length - n - 1; i++) {
-            if (sources[i].dist > sources[i + 1].dist) {
-                swap(sources, i, i + 1);
+    for (let n = 0; n < sourceDistances.length; n++) {
+        for (let i = 0; i < sourceDistances.length - n - 1; i++) {
+            if (sourceDistances[i].dist > sourceDistances[i + 1].dist) {
+                swap(sourceDistances, i, i + 1);
             }
         }
     }
+    // Extract sources from sorted list
+    return sourceDistances.map((sd) => sd.source);
 }
 
 //Swaps two elements in a list
@@ -315,7 +310,6 @@ function dist(pos1: RoomPosition, pos2: RoomPosition) {
 
 module.exports = {
     harvestSource,
-    harvestMineral,
     pullFromStorage,
     clearTarget,
     pickupResource,
