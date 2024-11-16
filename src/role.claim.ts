@@ -7,9 +7,9 @@ Functions to manage claim creeps
 const _ = require("lodash");
 const cellConfig = require("./config.cell");
 const utilityCreep = require("./utility.creep");
-import type { RoomID } from "./types";
+import type { BaseCreep, RoomID } from "./types";
 
-function run(creep: Creep) {
+function run(creep: BaseCreep) {
     //var reserveCfg = cellConfig[creep.memory.room][creep.memory.role];
 
     if (creep.memory.room === creep.memory.home || own(creep.memory.room)) {
@@ -62,7 +62,7 @@ function run(creep: Creep) {
 /*
 Sets creep's room
 */
-function setRoom(creep: Creep) {
+function setRoom(creep: BaseCreep) {
     const reserveCfg = cellConfig[creep.memory.home][creep.memory.role];
     const CLAIM_ROOMS = reserveCfg.CLAIM_ROOMS;
     for (const roomID of CLAIM_ROOMS) {
@@ -84,14 +84,27 @@ function setRoom(creep: Creep) {
 Returns true if room is owned by the player
 */
 function own(roomID: RoomID) {
-    return (Game.rooms[roomID]?.controller.my);
+    const room = Game.rooms[roomID];
+    // If room is not visible, it is not owned or does not exist.
+    if (room === undefined) {
+        return false;
+    }
+
+    const controller = room.controller;
+
+    // If room has no controller, it is not owned.
+    if (controller === undefined) {
+        return false;
+    }
+
+    return controller.my;
 }
 
 /*
 Returns true if a given room has a reserve creep assigned to it
 */
 function hasCreepAssigned(roomID: RoomID) {
-    const creeps = _.filter(Game.creeps, (creep) => creep.memory.role === "reserve" && creep.memory.room === roomID);
+    const creeps = _.filter(Game.creeps, (creep: BaseCreep) => creep.memory.role === "reserve" && creep.memory.room === roomID);
     return (creeps.length) > 0;
 }
 
