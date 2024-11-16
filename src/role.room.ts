@@ -89,7 +89,7 @@ function runStructures(roomID: RoomID) {
 Runs all terminals in a room
 */
 function runTerminal(roomID: RoomID) {
-    const terminals = _.filter(Game.rooms[roomID].find(FIND_MY_STRUCTURES), (structure) => structure.structureType === STRUCTURE_TERMINAL);
+    const terminals = _.filter(Game.rooms[roomID].find(FIND_MY_STRUCTURES), (structure: Structure) => structure.structureType === STRUCTURE_TERMINAL);
     for (const t in terminals) {
         const term = terminals[t];
         roleTerminal.run(term);
@@ -127,7 +127,7 @@ function spawnCreeps(roomID: RoomID) {
 Runs towers in a room
 */
 function runTowers(roomID: RoomID) {
-    const towers = _.filter(Game.rooms[roomID].find(FIND_MY_STRUCTURES), (structure) => structure.structureType === STRUCTURE_TOWER);
+    const towers = _.filter(Game.rooms[roomID].find(FIND_MY_STRUCTURES), (structure: Structure) => structure.structureType === STRUCTURE_TOWER);
     for (const t in towers) {
         const tower = towers[t];
         roleTower.run(tower);
@@ -138,7 +138,7 @@ function runTowers(roomID: RoomID) {
 Runs links in a room
 */
 function runLinks(roomID: RoomID) {
-    const links = _.filter(Game.rooms[roomID].find(FIND_MY_STRUCTURES), (structure) => structure.structureType === STRUCTURE_LINK);
+    const links = _.filter(Game.rooms[roomID].find(FIND_MY_STRUCTURES), (structure: Structure) => structure.structureType === STRUCTURE_LINK);
     for (const l in links) {
         const link = links[l];
         roleLink.run(link);
