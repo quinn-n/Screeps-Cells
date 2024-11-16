@@ -7,10 +7,11 @@ const _ = require("lodash");
 
 const misc = require("./misc");
 
-const cellConfig = require("./config.cell");
+const cellConfig: CellConfig = require("./config.cell");
 
 import type { RoomID, Segment } from "./types";
 import type { CreepType } from "./role.room";
+import type { CellConfig } from "./config.cell";
 
 /**
  * Spawns a creep of a given type in a given room.

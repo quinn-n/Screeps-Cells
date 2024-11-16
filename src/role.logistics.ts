@@ -4,8 +4,10 @@ role.logistics.js
 Functions to manage logistics robots
 */
 
+import type { CellConfig } from "./config.cell";
+
 const _ = require("lodash");
-const cellConfig = require("./config.cell");
+const cellConfig: CellConfig = require("./config.cell");
 
 function run(creep: Creep) {
     const logisConfig = cellConfig[creep.room.name][creep.memory.role];

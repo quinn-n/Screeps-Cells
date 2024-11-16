@@ -1,8 +1,10 @@
+import type { CellConfig } from "./config.cell";
+import type { BaseCreep, RoomID } from "./types";
 
-const cellConfig = require("./config.cell");
+const cellConfig: CellConfig = require("./config.cell");
     
 //Moves a creep towards parking area
-function park(creep: Creep) {
+function park(creep: BaseCreep) {
     if (creep.room.name !== creep.memory.room) {
         goToRoom(creep, creep.memory.room);
     }
@@ -12,7 +14,7 @@ function park(creep: Creep) {
     }
 }
 
-function goToRoom(creep: Creep, room: Room) {
+function goToRoom(creep: Creep, room: RoomID) {
     const exit = creep.room.findExitTo(room);
     creep.moveTo(creep.pos.findClosestByRange(exit));
 }

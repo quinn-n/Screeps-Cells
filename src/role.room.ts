@@ -27,7 +27,26 @@ const roleMineralHarvester = require("./role.mineralHarvester");
 
 import type { BaseCreep, RoomID } from "./types";
 
-export type CreepType = "harvester" | "constructor" | "upgrader" | "repair" | "security" | "claim" | "logistics" | "mineralHarvester";
+export type HARVESTER_CREEP = "harvester";
+export type CONSTRUCTOR_CREEP = "constructor";
+export type UPGRADER_CREEP = "upgrader";
+export type REPAIR_CREEP = "repair";
+export type SECURITY_CREEP = "security";
+export type CLAIM_CREEP = "claim";
+export type LOGISTICS_CREEP = "logistics";
+export type MINERAL_HARVESTER_CREEP = "mineralHarvester";
+
+
+export type CreepType = (
+    HARVESTER_CREEP |
+    CONSTRUCTOR_CREEP |
+    UPGRADER_CREEP |
+    REPAIR_CREEP |
+    SECURITY_CREEP |
+    CLAIM_CREEP |
+    LOGISTICS_CREEP |
+    MINERAL_HARVESTER_CREEP
+);
 
 function run(roomID: RoomID) {
     runStructures(roomID);

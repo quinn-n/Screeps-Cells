@@ -5,9 +5,11 @@
  * Written by Quinn Neufeld
  */
 
+import type { CellConfig } from "./config.cell";
+
 const _ = require("lodash");
 
-const cellConfig = require("./config.cell");
+const cellConfig: CellConfig = require("./config.cell");
 
 function run(terminal: StructureTerminal)
 {
@@ -52,7 +54,7 @@ function run(terminal: StructureTerminal)
         //Attempt to buy resources if there's less in store than the minimum
         else if (RESOURCE_CFG.buy !== undefined && terminal.store[resource] < RESOURCE_CFG.buy.min) {
             const gameOrders = Game.market.getAllOrders({type: ORDER_SELL, resourceType: resource});
-            const orders = _.filter(gameOrders, (order) => order.price <= RESOURCE_CFG.buy.max_price);
+            const orders = _.filter(gameOrders, (order: Order) => order.price <= RESOURCE_CFG.buy.max_price);
             if (orders.length) {
                 sortByPrice(orders);
                 orders.reverse();
@@ -63,7 +65,7 @@ function run(terminal: StructureTerminal)
                 }
                 const dealErr = Game.market.deal(ord.id, amount, terminal.room.name);
                 if (dealErr !== OK) {
-                    console.log(`Game.market.deal in role.termainal.js got error ${err}`);
+                    console.log(`Game.market.deal in role.termainal.js got error ${dealErr}`);
                 }
             }
         }

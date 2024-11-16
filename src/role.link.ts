@@ -4,7 +4,9 @@ role.link.js
 Functions to manage link structures
 */
 
-const cellConfig = require("./config.cell");
+import type { CellConfig } from "./config.cell";
+
+const cellConfig: CellConfig = require("./config.cell");
 
 const PROVIDER = "provider";
 const REQUESTER = "requester";
@@ -55,9 +57,15 @@ Returns undefined if no requesters exist in the room
 function getLowestRequester(link: StructureLink) {
     const linkConfig = cellConfig[link.room.name].LINK;
     let lowestId = linkConfig.REQUESTERS[0];
+    let lowestLink = Game.getObjectById(linkConfig.REQUESTERS[0]);
     for (const i in linkConfig.REQUESTERS) {
         const id = linkConfig.REQUESTERS[i];
-        if (Game.getObjectById<StructureLink>(id).store[RESOURCE_ENERGY] < Game.getObjectById<StructureLink>(lowestId).store[RESOURCE_ENERGY]) {
+        const newLink = Game.getObjectById(id);
+        if (newLink === null) {
+            console.warn(`Got undefined link in config: ${id}`);
+            continue;
+        }
+        if (newLink.store[RESOURCE_ENERGY] < Game.getObjectById<StructureLink>(lowestId).store[RESOURCE_ENERGY]) {
             lowestId = id;
         }
     }

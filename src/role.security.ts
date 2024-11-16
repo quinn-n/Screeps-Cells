@@ -4,7 +4,10 @@ role.security.js
 Functions to manage security creeps
 */
 
-const cellConfig = require("./config.cell");
+import type { CellConfig } from "./config.cell";
+import type { BaseCreep } from "./types";
+
+const cellConfig: CellConfig = require("./config.cell");
 
 const HOSTILE_CREEP_PARTS: BodyPartConstant[] = [
     ATTACK,
@@ -12,8 +15,8 @@ const HOSTILE_CREEP_PARTS: BodyPartConstant[] = [
     CLAIM
 ];
 
-function run(creep: Creep) {
-    const secCfg = cellConfig[creep.memory.home][creep.memory.role];
+function run(creep: BaseCreep) {
+    const secCfg = cellConfig[creep.memory.home].security;
 
     //Attack hostile attack creeps
     const hostileCreeps = getAttackCreeps(creep);

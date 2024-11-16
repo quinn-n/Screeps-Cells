@@ -4,10 +4,12 @@ role.upgrader.js
 Manages controller upgrading creeps
 */
 
+import type { HarvestingCreep } from "./types";
+
 const harvestSource = require("./harvest.source");
 const utilityCreep = require("./utility.creep");
 
-function run(creep: Creep) {
+function run(creep: HarvestingCreep) {
     if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.harvesting = true;
     }

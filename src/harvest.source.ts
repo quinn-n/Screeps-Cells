@@ -1,7 +1,8 @@
+import type { CellConfig } from "./config.cell";
 import type { HARVESTER_CREEP } from "./role.room";
 import type { BaseCreep, BuildingID, HarvestingCreep } from "./types";
 
-const cellConfig = require("./config.cell");
+const cellConfig: CellConfig = require("./config.cell");
 const _ = require("lodash");
 
 const EXCLUDED_SOURCES: BuildingID[] = [

@@ -5,13 +5,13 @@ Functions to manage claim creeps
 */
 
 const _ = require("lodash");
-const cellConfig = require("./config.cell");
+const cellConfig: CellConfig = require("./config.cell");
 const utilityCreep = require("./utility.creep");
-import type { BaseCreep, RoomID } from "./types";
+
+import type { CellConfig } from "./config.cell";
+import type { BaseCreep } from "./types";
 
 function run(creep: BaseCreep) {
-    //var reserveCfg = cellConfig[creep.memory.room][creep.memory.role];
-
     if (creep.memory.room === creep.memory.home || own(creep.memory.room)) {
         setRoom(creep);
     }
@@ -21,14 +21,14 @@ function run(creep: BaseCreep) {
         return;
     }
 
-    const reserveCfg = cellConfig[creep.memory.home][creep.memory.role];
+    const claimCfg = cellConfig[creep.memory.home].claim;
 
     const controller = creep.room.controller;
     if (controller === undefined) {
         console.log(`Claim creep ${creep.name} in room ${creep.room.name} has no controller. Please double-check config.`);
         return;
     }
-    if (reserveCfg.CLAIM_ROOMS.includes(creep.room.name)) {
+    if (claimCfg.CLAIM_ROOMS.includes(creep.room.name)) {
         const err = creep.claimController(controller);
         if (err === ERR_NOT_IN_RANGE) {
             creep.moveTo(controller, {maxRooms: 1});
@@ -46,7 +46,7 @@ function run(creep: BaseCreep) {
         console.log(`Claim creep got error: ${err}`);
         return;
     }
-    if (reserveCfg.RESERVE_ROOMS.includes(creep.room.name)) {
+    if (claimCfg.RESERVE_ROOMS.includes(creep.room.name)) {
         const err = creep.reserveController(controller);
         if (err === ERR_NOT_IN_RANGE) {
             creep.moveTo(controller, {maxRooms: 1});
@@ -63,15 +63,15 @@ function run(creep: BaseCreep) {
 Sets creep's room
 */
 function setRoom(creep: BaseCreep) {
-    const reserveCfg = cellConfig[creep.memory.home][creep.memory.role];
-    const CLAIM_ROOMS = reserveCfg.CLAIM_ROOMS;
+    const claimCfg = cellConfig[creep.memory.home].claim;
+    const CLAIM_ROOMS = claimCfg.CLAIM_ROOMS;
     for (const roomID of CLAIM_ROOMS) {
         if (!hasCreepAssigned(roomID) && !own(roomID)) {
             creep.memory.room = roomID;
             return;
         }
     }
-    const RESERVE_ROOMS = reserveCfg.RESERVE_ROOMS;
+    const RESERVE_ROOMS = claimCfg.RESERVE_ROOMS;
     for (const roomID of RESERVE_ROOMS) {
         if (!hasCreepAssigned(roomID)) {
             creep.memory.room = roomID;

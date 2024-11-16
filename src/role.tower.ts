@@ -4,9 +4,11 @@ role.tower.js
 Functions to manage towers
 */
 
+import type { CellConfig } from "./config.cell";
+
 const _ = require("lodash");
 
-const cellConfig = require("./config.cell");
+const cellConfig: CellConfig = require("./config.cell");
 
 function run(tower: StructureTower) {
     const TWR_CFG = cellConfig[tower.room.name].TOWERS;
@@ -22,7 +24,7 @@ function run(tower: StructureTower) {
 
     //Repair structures if repair is enabled
     if (TWR_CFG.REPAIR_ENABLED) {
-        const damagedStructures = _.filter(tower.room.find(FIND_MY_STRUCTURES), (structure) => structure.hits < structure.hitsMax);
+        const damagedStructures = _.filter(tower.room.find(FIND_MY_STRUCTURES), (structure: Structure) => structure.hits < structure.hitsMax);
         for (const structure of damagedStructures) {
             const repairErr = tower.repair(structure);
             if (repairErr === OK) {
@@ -33,7 +35,7 @@ function run(tower: StructureTower) {
 
     //Heal friendly creeps if healing is enabled
     if (TWR_CFG.HEAL_ENABLED) {
-        const damagedCreeps = _.filter(tower.room.find(FIND_MY_CREEPS), (creep) => creep.hits < creep.hitsMax);
+        const damagedCreeps = _.filter(tower.room.find(FIND_MY_CREEPS), (creep: Creep) => creep.hits < creep.hitsMax);
         for (const creep of damagedCreeps) {
             const healErr = tower.heal(creep);
             if (healErr === OK) {
