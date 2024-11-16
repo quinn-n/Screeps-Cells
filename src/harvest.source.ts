@@ -1,3 +1,4 @@
+import type { HARVESTER_CREEP } from "./role.room";
 import type { BaseCreep, BuildingID, HarvestingCreep } from "./types";
 
 const cellConfig = require("./config.cell");
@@ -148,7 +149,7 @@ function depositResources(creep: BaseCreep, res: ResourceConstant = RESOURCE_ENE
     if (creep.memory.home === undefined) {
         console.log(`Creep ${creep.name} got undefined room.`);
     }
-    const configCreep = cellConfig[creep.memory.home][creep.memory.role];
+    const configCreep = cellConfig[creep.memory.home][creep.memory.role as HARVESTER_CREEP];
     for (const sType in configCreep.DEPOSIT_STRUCTURES) {
         const structureType = configCreep.DEPOSIT_STRUCTURES[sType];
         const structures = _.filter(
