@@ -4,10 +4,12 @@ role.harvester.js
 Manages harvester creeps
 */
 
+import type { HarvestingCreep } from "./types";
+
 const harvestSource = require("./harvest.source");
 const utilityCreep = require("./utility.creep");
 
-function run(creep: Creep) {
+function run(creep: HarvestingCreep) {
     if (!creep.store[RESOURCE_ENERGY]) {
         creep.memory.harvesting = true;
     }
@@ -29,10 +31,11 @@ function run(creep: Creep) {
             const controller = creep.room.controller;
             if (controller === undefined) {
                 console.log(`No controller in room ${creep.room.name}`);
+                return;
             }
-            const err = creep.upgradeController(creep.room.controller);
+            const err = creep.upgradeController(controller);
             if (err === ERR_NOT_IN_RANGE) {
-                creep.moveTo(creep.room.controller, {maxRooms: 1});
+                creep.moveTo(controller, {maxRooms: 1});
             }
         }
     }
