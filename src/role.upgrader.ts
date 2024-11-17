@@ -19,9 +19,14 @@ function run(creep: HarvestingCreep) {
 
     if (!creep.memory.harvesting) {
         harvestSource.clearTarget(creep);
-        const upgradeErr = creep.upgradeController(creep.room.controller);
+        const controller = creep.room.controller;
+        if (!controller) {
+            console.error(`No controller in room ${creep.room.name}`);
+            return;
+        }
+        const upgradeErr = creep.upgradeController(controller);
         if (upgradeErr === ERR_NOT_IN_RANGE) {
-            creep.moveTo(creep.room.controller, {maxRooms: 1});
+            creep.moveTo(controller, {maxRooms: 1});
             return OK;
         }
     }

@@ -18,7 +18,7 @@ function run(creep: Creep) {
         if (!toStructures.length) {
             continue;
         }
-        const fromStructures = getFromStructures(creep, resource) as StorageStructure[];
+        const fromStructures = getFromStructures(creep, resource);
         if (!fromStructures.length && !creep.store[resource]) {
             continue;
         }
@@ -40,7 +40,7 @@ function run(creep: Creep) {
         }
         //Withdraw resource
         else {
-            const structure = getClosest(creep, _.filter(fromStructures, (structure: StorageStructure) => structure.store[resource] > 0));
+            const structure = getClosest(creep, _.filter(fromStructures, (structure: StorageStructure) => structure.store[resource] > 0) as StorageStructure[]);
             let amount = creep.store.getFreeCapacity(resource);
             if (structure.store[resource] < amount) {
                 amount = structure.store[resource];
@@ -87,7 +87,7 @@ function getFromStructures(creep: Creep, resource: ResourceConstant) {
     if (resCfg === undefined) {
         throw new Error(`Got unconfigured resource ${resource} in room ${creep.room.name}`);
     }
-    const fromStructures = _.filter(creep.room.find(FIND_MY_STRUCTURES), (structure: StorageStructure) => resCfg.FROM.includes(structure.structureType) && structure.store[resource] > 0);
+    const fromStructures = _.filter(creep.room.find(FIND_MY_STRUCTURES), (structure: StorageStructure) => resCfg.FROM.includes(structure.structureType) && structure.store[resource] > 0) as StorageStructure[];
     return fromStructures;
 }
 

@@ -16,6 +16,7 @@ export type StorageStructure = (
     StructureLink |
     StructureLab |
     StructureNuker |
+    StructureFactory |
     StructurePowerSpawn |
     StructureSpawn |
     StructureTower
