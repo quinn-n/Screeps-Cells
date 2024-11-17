@@ -9,6 +9,18 @@ export type Segment = {
 export type RoomID = string;
 export type BuildingID = string;
 
+export type StorageStructure = (
+    StructureContainer |
+    StructureStorage |
+    StructureTerminal |
+    StructureLink |
+    StructureLab |
+    StructureNuker |
+    StructurePowerSpawn |
+    StructureSpawn |
+    StructureTower
+);
+
 export interface BaseCreepMemory extends CreepMemory {
     role: CreepType;
     home: RoomID;

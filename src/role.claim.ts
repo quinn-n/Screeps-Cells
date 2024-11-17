@@ -9,7 +9,7 @@ const cellConfig: CellConfig = require("./config.cell");
 const utilityCreep = require("./utility.creep");
 
 import type { CellConfig } from "./config.cell";
-import type { BaseCreep } from "./types";
+import type { BaseCreep, RoomID } from "./types";
 
 function run(creep: BaseCreep) {
     if (creep.memory.room === creep.memory.home || own(creep.memory.room)) {

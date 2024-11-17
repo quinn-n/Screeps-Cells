@@ -12,22 +12,16 @@ const PROVIDER = "provider";
 const REQUESTER = "requester";
 
 function run(link: StructureLink) {
-    const linkConfig = cellConfig[link.room.name].LINK;
     const type = getType(link);
     if (type === REQUESTER) {
         return;
     }
     if (type === PROVIDER) {
-        const lowestId = getLowestRequester(link);
-        if (lowestId === undefined) {
+        const lowestRequester = getLowestRequester(link);
+        if (lowestRequester === undefined) {
             return;
         }
-        const lowestLink = Game.getObjectById<StructureLink>(lowestId);
-        if (lowestLink === null) {
-            console.log(`Got undefined link in config: ${lowestId}`);
-            return;
-        }
-        link.transferEnergy(lowestLink);
+        link.transferEnergy(lowestRequester);
     }
     else if (type === undefined) {
         console.log(`Got unconfigured link in room ${link.room.name}`);
@@ -56,20 +50,24 @@ Returns undefined if no requesters exist in the room
 */
 function getLowestRequester(link: StructureLink) {
     const linkConfig = cellConfig[link.room.name].LINK;
-    let lowestId = linkConfig.REQUESTERS[0];
-    let lowestLink = Game.getObjectById(linkConfig.REQUESTERS[0]);
+    let lowestLink = undefined;
     for (const i in linkConfig.REQUESTERS) {
         const id = linkConfig.REQUESTERS[i];
-        const newLink = Game.getObjectById(id);
+        const newLink = Game.getObjectById(id as Id<StructureLink>);
         if (newLink === null) {
             console.warn(`Got undefined link in config: ${id}`);
             continue;
         }
-        if (newLink.store[RESOURCE_ENERGY] < Game.getObjectById<StructureLink>(lowestId).store[RESOURCE_ENERGY]) {
-            lowestId = id;
+        const lowestIsUndefined = lowestLink === undefined;
+        // biome-ignore lint/style/noNonNullAssertion: Doesn't run if lowestLink is undefined
+        if (lowestIsUndefined || newLink.store[RESOURCE_ENERGY] < lowestLink!.store[RESOURCE_ENERGY]) {
+            lowestLink = newLink;
         }
     }
-    return lowestId;
+    if (lowestLink === undefined) {
+        console.warn(`No requesters in room ${link.room.name} despite being in config`);
+    }
+    return lowestLink;
 }
 
 module.exports = { run };

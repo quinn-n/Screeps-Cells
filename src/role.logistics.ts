@@ -5,31 +5,31 @@ Functions to manage logistics robots
 */
 
 import type { CellConfig } from "./config.cell";
+import type { StorageStructure } from "./types";
 
 const _ = require("lodash");
 const cellConfig: CellConfig = require("./config.cell");
 
 function run(creep: Creep) {
-    const logisConfig = cellConfig[creep.room.name][creep.memory.role];
-    for (const resource in logisConfig.TRANSFERS) {
-        const transCfg = logisConfig.TRANSFERS[resource];
-        const toStructures = getToStructures(creep, resource as ResourceConstant);
+    const logisConfig = cellConfig[creep.room.name].logistics;
+    for (const resourceString in logisConfig.TRANSFERS) {
+        const resource = resourceString as ResourceConstant;
+        const toStructures = getToStructures(creep, resource);
         if (!toStructures.length) {
             continue;
         }
-        const fromStructures = getFromStructures(creep, resource);
-        if (!fromStructures.length && !creep.store[resource as ResourceConstant]) {
+        const fromStructures = getFromStructures(creep, resource) as StorageStructure[];
+        if (!fromStructures.length && !creep.store[resource]) {
             continue;
         }
-        //Deposit resource
-        if (creep.store[resource as ResourceConstant]) {
-            //var structure = getLowestStored(toStructures, resource);
+        // Deposit resource
+        if (creep.store[resource]) {
             const structure = getClosest(creep, toStructures);
-            let amount = creep.store[resource as ResourceConstant];
+            let amount = creep.store[resource];
             if (structure.store.getFreeCapacity(resource) < amount) {
                 amount = structure.store.getFreeCapacity(resource);
             }
-            const transferErr = creep.transfer(structure, resource as ResourceConstant, amount);
+            const transferErr = creep.transfer(structure, resource, amount);
             if (transferErr === ERR_NOT_IN_RANGE) {
                 creep.moveTo(structure, {maxRooms: 1});
                 return;
@@ -40,13 +40,12 @@ function run(creep: Creep) {
         }
         //Withdraw resource
         else {
-            //var structure = getHighestStored(fromStructures, resource);
-            const structure = getClosest(creep, _.filter(fromStructures, (structure) => structure.store[resource] > 0));
-            let amount = creep.store.getFreeCapacity(resource as ResourceConstant);
+            const structure = getClosest(creep, _.filter(fromStructures, (structure: StorageStructure) => structure.store[resource] > 0));
+            let amount = creep.store.getFreeCapacity(resource);
             if (structure.store[resource] < amount) {
                 amount = structure.store[resource];
             }
-            const withdrawlErr = creep.withdraw(structure, resource as ResourceConstant, amount);
+            const withdrawlErr = creep.withdraw(structure, resource, amount);
             if (withdrawlErr === ERR_NOT_IN_RANGE) {
                 creep.moveTo(structure, {maxRooms: 1});
                 return;
@@ -63,13 +62,19 @@ function run(creep: Creep) {
 Returns structures that need a certain type of resource
 */
 function getToStructures(creep: Creep, resource: ResourceConstant) {
-    const resCfg = cellConfig[creep.room.name][creep.memory.role].TRANSFERS[resource];
-    let toStructures = _.filter(creep.room.find(FIND_MY_STRUCTURES), (structure) => resCfg.TO.includes(structure.structureType));
+    const resCfg = cellConfig[creep.room.name].logistics.TRANSFERS[resource];
+
+    if (resCfg === undefined) {
+        console.warn(`Got unconfigured resource ${resource} in room ${creep.room.name}`);
+        return [];
+    }
+
+    let toStructures: StorageStructure[] = _.filter(creep.room.find(FIND_MY_STRUCTURES), (structure: Structure) => resCfg.TO.includes(structure.structureType));
     if (!resCfg.AMOUNT) {
-        toStructures = _.filter(toStructures, (structure) => structure.store.getFreeCapacity(resource) > 0);
+        toStructures = _.filter(toStructures, (structure: StorageStructure) => structure.store.getFreeCapacity(resource) > 0);
     }
     else {
-        toStructures = _.filter(toStructures, (structure) => structure.store[resource] < resCfg.AMOUNT);
+        toStructures = _.filter(toStructures, (structure: StorageStructure) => structure.store[resource] < resCfg.AMOUNT);
     }
     return toStructures;
 }
@@ -78,15 +83,18 @@ function getToStructures(creep: Creep, resource: ResourceConstant) {
 Returns structures that can provide a certain type of resource
 */
 function getFromStructures(creep: Creep, resource: ResourceConstant) {
-    const resCfg = cellConfig[creep.room.name][creep.memory.role].TRANSFERS[resource];
-    const fromStructures = _.filter(creep.room.find(FIND_MY_STRUCTURES), (structure) => resCfg.FROM.includes(structure.structureType) && structure.store[resource] > 0);
+    const resCfg = cellConfig[creep.room.name].logistics.TRANSFERS[resource];
+    if (resCfg === undefined) {
+        throw new Error(`Got unconfigured resource ${resource} in room ${creep.room.name}`);
+    }
+    const fromStructures = _.filter(creep.room.find(FIND_MY_STRUCTURES), (structure: StorageStructure) => resCfg.FROM.includes(structure.structureType) && structure.store[resource] > 0);
     return fromStructures;
 }
 
 /*
 Returns the entity with the lowest store of a given resource
 */
-function getLowestStored(objs: Structure[], resource: ResourceConstant) {
+function getLowestStored(objs: StorageStructure[], resource: ResourceConstant) {
     let lowest = objs[0];
     for (let i = 1; i < objs.length; i++) {
         if (objs[i].store[resource] < lowest.store[resource]) {
@@ -99,7 +107,7 @@ function getLowestStored(objs: Structure[], resource: ResourceConstant) {
 /*
 Returns the entity with the highest store of a given resource
 */
-function getHighestStored(objs: Structure[], resource: ResourceConstant) {
+function getHighestStored(objs: StorageStructure[], resource: ResourceConstant) {
     let highest = objs[0];
     for (let i = 1; i < objs.length; i++) {
         if (objs[i].store[resource] < highest.store[resource]) {
@@ -111,7 +119,7 @@ function getHighestStored(objs: Structure[], resource: ResourceConstant) {
 /*
 Returns the nearest object to a creep
 */
-function getClosest(creep: Creep, objs: Structure[]) {
+function getClosest<T extends StructureConstant>(creep: Creep, objs: Structure<T>[]) {
     let closest = objs[0];
     for (let i = 1; i < objs.length; i++) {
         if (dist(objs[i].pos, creep.pos) < dist(closest.pos, creep.pos)) {
