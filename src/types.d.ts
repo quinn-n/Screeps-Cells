@@ -21,6 +21,18 @@ export type StorageStructure =
 	| StructureSpawn
 	| StructureTower;
 
+export type STORAGE_STRUCTURE =
+	| STRUCTURE_STORAGE
+	| STRUCTURE_STORAGE
+	| STRUCTURE_TERMINAL
+	| STRUCTURE_LINK
+	| STRUCTURE_LAB
+	| STRUCTURE_NUKER
+	| STRUCTURE_FACTORY
+	| STRUCTURE_POWER_SPAWN
+	| STRUCTURE_SPAWN
+	| STRUCTURE_TOWER;
+
 export interface BaseCreep extends Creep {
 	memory: BaseCreepMemory;
 }

@@ -1,7 +1,15 @@
 import type { CreepType } from "./role.room";
+import type { Ticker } from "./ticker";
 import type { BaseCreep } from "./types";
 
-const _ = require("lodash");
+import _ from "lodash";
+
+class Allocator implements Ticker {
+	public tick() {
+		this.allocateHarvesters();
+	}
+	public allocateHarvesters() {}
+}
 
 /**
  * Calculates estimated work done per tick by a creep for a given role
