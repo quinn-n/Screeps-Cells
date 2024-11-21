@@ -1,20 +1,16 @@
+import cleanup from "./cleanup";
+import pixelGenerator from "./pixel.generator";
 
-const cleanup = require("./cleanup");
-const pixelGenerator = require("./pixel.generator");
-
-const roleRoom = require("./role.room");
+import roleRoom from "./role.room";
 
 function loop() {
-    cleanup.run();
+	cleanup.run();
 
-    pixelGenerator.run();
+	pixelGenerator.run();
 
-    for (const r in Game.rooms) {
-        roleRoom.run(r);
-    }
+	for (const r in Game.rooms) {
+		roleRoom.run(r);
+	}
 }
 
-module.exports = { loop };
-
-// This just makes sure that typescript recognises the file as a module.
-export default module.exports;
+export default { loop };

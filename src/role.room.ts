@@ -3,26 +3,25 @@ cell role
 manages a single cell
 */
 
-const _ = require("lodash");
+import _ from "lodash";
 
-const configCell = require("./config.cell");
-const utilityCreep = require("./utility.creep");
+import configCell from "./config.cell";
+import utilityCreep from "./utility.creep";
 
-const harvestSource = require("./role.harvester");
+import harvestSource from "./harvest.source";
 
-const roleSpawn = require("./role.spawn");
-const roleTower = require("./role.tower");
-const roleLink = require("./role.link");
-const roleTerminal = require("./role.terminal");
+import roleSpawn from "./role.spawn";
+import roleTower from "./role.tower";
+import roleLink from "./role.link";
+import roleTerminal from "./role.terminal";
 
-const roleHarvester = require("./role.harvester");
-const roleConstructor = require("./role.constructor");
-const roleUpgrader = require("./role.upgrader");
-const roleRepair = require("./role.repair");
-const roleSecurity = require("./role.security");
-const roleClaim = require("./role.claim");
-const roleLogistics = require("./role.logistics");
-const roleMineralHarvester = require("./role.mineralHarvester");
+import roleHarvester from "./role.harvester";
+import roleConstructor from "./role.constructor";
+import roleUpgrader from "./role.upgrader";
+import roleRepair from "./role.repair";
+import roleSecurity from "./role.security";
+import roleClaim from "./role.claim";
+import roleLogistics from "./role.logistics";
 
 import type { BaseCreep, RoomID } from "./types";
 
@@ -33,7 +32,6 @@ export type REPAIR_CREEP = "repair";
 export type SECURITY_CREEP = "security";
 export type CLAIM_CREEP = "claim";
 export type LOGISTICS_CREEP = "logistics";
-export type MINERAL_HARVESTER_CREEP = "mineralHarvester";
 
 export type CreepType =
 	| HARVESTER_CREEP
@@ -42,8 +40,7 @@ export type CreepType =
 	| REPAIR_CREEP
 	| SECURITY_CREEP
 	| CLAIM_CREEP
-	| LOGISTICS_CREEP
-	| MINERAL_HARVESTER_CREEP;
+	| LOGISTICS_CREEP;
 
 function run(roomID: RoomID) {
 	runStructures(roomID);
@@ -80,8 +77,6 @@ function runCreeps(roomID: RoomID) {
 			roleClaim.run(creep);
 		} else if (creep.memory.role === "logistics") {
 			roleLogistics.run(creep);
-		} else if (creep.memory.role === "mineralHarvester") {
-			roleMineralHarvester.run(creep);
 		}
 	}
 }
@@ -157,8 +152,9 @@ Runs links in a room
 function runLinks(roomID: RoomID) {
 	const links = _.filter(
 		Game.rooms[roomID].find(FIND_MY_STRUCTURES),
-		(structure: Structure) => structure.structureType === STRUCTURE_LINK,
-	);
+		(structure: AnyOwnedStructure) =>
+			structure.structureType === STRUCTURE_LINK,
+	) as StructureLink[];
 	for (const l in links) {
 		const link = links[l];
 		roleLink.run(link);
@@ -226,7 +222,4 @@ function getCreepsForRoom(homeRoom: RoomID, role: CreepType) {
 	return n;
 }
 
-module.exports = { run };
-
-// This just makes sure that typescript recognises the file as a module.
-export default module.exports;
+export default { run };
