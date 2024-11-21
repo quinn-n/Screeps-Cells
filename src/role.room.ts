@@ -1,29 +1,27 @@
-
 /*
 cell role
 manages a single cell
 */
 
-const _ = require("lodash");
+import _ from "lodash";
 
-const configCell = require("./config.cell");
-const utilityCreep = require("./utility.creep");
+import configCell from "./config.cell";
+import utilityCreep from "./utility.creep";
 
-const harvestSource = require("./role.harvester");
+import harvestSource from "./harvest.source";
 
-const roleSpawn = require("./role.spawn");
-const roleTower = require("./role.tower");
-const roleLink = require("./role.link");
-const roleTerminal = require("./role.terminal");
+import roleSpawn from "./role.spawn";
+import roleTower from "./role.tower";
+import roleLink from "./role.link";
+import roleTerminal from "./role.terminal";
 
-const roleHarvester = require("./role.harvester");
-const roleConstructor = require("./role.constructor");
-const roleUpgrader = require("./role.upgrader");
-const roleRepair = require("./role.repair");
-const roleSecurity = require("./role.security");
-const roleClaim = require("./role.claim");
-const roleLogistics = require("./role.logistics");
-const roleMineralHarvester = require("./role.mineralHarvester");
+import roleHarvester from "./role.harvester";
+import roleConstructor from "./role.constructor";
+import roleUpgrader from "./role.upgrader";
+import roleRepair from "./role.repair";
+import roleSecurity from "./role.security";
+import roleClaim from "./role.claim";
+import roleLogistics from "./role.logistics";
 
 import type { BaseCreep, RoomID } from "./types";
 
@@ -34,152 +32,153 @@ export type REPAIR_CREEP = "repair";
 export type SECURITY_CREEP = "security";
 export type CLAIM_CREEP = "claim";
 export type LOGISTICS_CREEP = "logistics";
-export type MINERAL_HARVESTER_CREEP = "mineralHarvester";
 
-
-export type CreepType = (
-    HARVESTER_CREEP |
-    CONSTRUCTOR_CREEP |
-    UPGRADER_CREEP |
-    REPAIR_CREEP |
-    SECURITY_CREEP |
-    CLAIM_CREEP |
-    LOGISTICS_CREEP |
-    MINERAL_HARVESTER_CREEP
-);
+export type CreepType =
+	| HARVESTER_CREEP
+	| CONSTRUCTOR_CREEP
+	| UPGRADER_CREEP
+	| REPAIR_CREEP
+	| SECURITY_CREEP
+	| CLAIM_CREEP
+	| LOGISTICS_CREEP;
 
 function run(roomID: RoomID) {
-    runStructures(roomID);
+	runStructures(roomID);
 
-    sendExtraditions(roomID);
-    runCreeps(roomID);
+	sendExtraditions(roomID);
+	runCreeps(roomID);
 }
 
 /*
 Runs creep functions
 */
 function runCreeps(roomID: RoomID) {
-    const creeps = _.filter(Game.creeps, (creep: BaseCreep) => creep.memory.home === roomID && !creep.spawning);
-    for (const creep of creeps) {
-        if (creep.room.name !== creep.memory.room) {
-            utilityCreep.goToRoom(creep, creep.memory.room);
-            continue;
-        }
+	const creeps = _.filter(
+		Game.creeps,
+		(creep: BaseCreep) => creep.memory.home === roomID && !creep.spawning,
+	);
+	for (const creep of creeps) {
+		if (creep.room.name !== creep.memory.room) {
+			utilityCreep.goToRoom(creep, creep.memory.room);
+			continue;
+		}
 
-
-        if (creep.memory.role === "harvester") {
-            roleHarvester.run(creep);
-        }
-        else if (creep.memory.role === "constructor") {
-            roleConstructor.run(creep);
-        }
-        else if (creep.memory.role === "upgrader") {
-            roleUpgrader.run(creep);
-        }
-        else if (creep.memory.role === "repair") {
-            roleRepair.run(creep);
-        }
-        else if (creep.memory.role === "security") {
-            roleSecurity.run(creep);
-        }
-        else if (creep.memory.role === "claim") {
-            roleClaim.run(creep);
-        }
-        else if (creep.memory.role === "logistics") {
-            roleLogistics.run(creep);
-        }
-        else if (creep.memory.role === "mineralHarvester") {
-            roleMineralHarvester.run(creep);
-        }
-    }
+		if (creep.memory.role === "harvester") {
+			roleHarvester.run(creep);
+		} else if (creep.memory.role === "constructor") {
+			roleConstructor.run(creep);
+		} else if (creep.memory.role === "upgrader") {
+			roleUpgrader.run(creep);
+		} else if (creep.memory.role === "repair") {
+			roleRepair.run(creep);
+		} else if (creep.memory.role === "security") {
+			roleSecurity.run(creep);
+		} else if (creep.memory.role === "claim") {
+			roleClaim.run(creep);
+		} else if (creep.memory.role === "logistics") {
+			roleLogistics.run(creep);
+		}
+	}
 }
 
 /*
 Runs all structures in a room
 */
 function runStructures(roomID: RoomID) {
-    spawnCreeps(roomID);
-    runTowers(roomID);
-    runLinks(roomID);
-    runTerminal(roomID);
+	spawnCreeps(roomID);
+	runTowers(roomID);
+	runLinks(roomID);
+	runTerminal(roomID);
 }
 
 /*
 Runs all terminals in a room
 */
 function runTerminal(roomID: RoomID) {
-    const terminals = _.filter(Game.rooms[roomID].find(FIND_MY_STRUCTURES), (structure: Structure) => structure.structureType === STRUCTURE_TERMINAL);
-    for (const t in terminals) {
-        const term = terminals[t];
-        roleTerminal.run(term);
-    }
+	const terminals = _.filter(
+		Game.rooms[roomID].find(FIND_MY_STRUCTURES),
+		(structure: Structure) => structure.structureType === STRUCTURE_TERMINAL,
+	);
+	for (const t in terminals) {
+		const term = terminals[t];
+		roleTerminal.run(term);
+	}
 }
 
 /*
 Spawns creeps needed in a room
 */
 function spawnCreeps(roomID: RoomID) {
-    if (configCell[roomID] === undefined) {
-        //console.log("Got no config for room " + roomID);
-        return;
-    }
-    const spawnCfg = configCell[roomID].SPAWN;
-    for (const role in spawnCfg) {
-        const creepCfg = spawnCfg[role as CreepType];
+	if (configCell[roomID] === undefined) {
+		//console.log("Got no config for room " + roomID);
+		return;
+	}
+	const spawnCfg = configCell[roomID].SPAWN;
+	for (const role in spawnCfg) {
+		const creepCfg = spawnCfg[role as CreepType];
 
-        if (creepCfg === undefined) {
-            continue;
-        }
+		if (creepCfg === undefined) {
+			continue;
+		}
 
-        const nCreeps = getCreepsForRoom(roomID, role as CreepType);
+		const nCreeps = getCreepsForRoom(roomID, role as CreepType);
 
-        if (nCreeps < creepCfg.N_CREEPS) {
-            const err = roleSpawn.spawnCreep(roomID, role);
-            if (err === OK || err === ERR_NOT_ENOUGH_ENERGY) {
-                return;
-            }
-        }
-    }
+		if (nCreeps < creepCfg.N_CREEPS) {
+			const err = roleSpawn.spawnCreep(roomID, role);
+			if (err === OK || err === ERR_NOT_ENOUGH_ENERGY) {
+				return;
+			}
+		}
+	}
 }
 
 /*
 Runs towers in a room
 */
 function runTowers(roomID: RoomID) {
-    const towers = _.filter(Game.rooms[roomID].find(FIND_MY_STRUCTURES), (structure: Structure) => structure.structureType === STRUCTURE_TOWER);
-    for (const t in towers) {
-        const tower = towers[t];
-        roleTower.run(tower);
-    }
+	const towers = _.filter(
+		Game.rooms[roomID].find(FIND_MY_STRUCTURES),
+		(structure: Structure) => structure.structureType === STRUCTURE_TOWER,
+	);
+	for (const t in towers) {
+		const tower = towers[t];
+		roleTower.run(tower);
+	}
 }
 
 /*
 Runs links in a room
 */
 function runLinks(roomID: RoomID) {
-    const links = _.filter(Game.rooms[roomID].find(FIND_MY_STRUCTURES), (structure: Structure) => structure.structureType === STRUCTURE_LINK);
-    for (const l in links) {
-        const link = links[l];
-        roleLink.run(link);
-    }
+	const links = _.filter(
+		Game.rooms[roomID].find(FIND_MY_STRUCTURES),
+		(structure: AnyOwnedStructure) =>
+			structure.structureType === STRUCTURE_LINK,
+	) as StructureLink[];
+	for (const l in links) {
+		const link = links[l];
+		roleLink.run(link);
+	}
 }
 
 /*
 Send extradition creeps
 */
 function sendExtraditions(homeRoom: RoomID) {
-    if (configCell[homeRoom] === undefined) {
-        return;
-    }
-    const extraditionCfg = configCell[homeRoom].EXTRADITED_CREEPS;
+	if (configCell[homeRoom] === undefined) {
+		return;
+	}
+	const extraditionCfg = configCell[homeRoom].EXTRADITED_CREEPS;
 	for (const room in extraditionCfg) {
 		const roomExtraditionCfg = extraditionCfg[room];
 		for (const creepTypeStr in roomExtraditionCfg) {
-            const creepType = creepTypeStr as CreepType;
+			const creepType = creepTypeStr as CreepType;
 			const typeCfg = roomExtraditionCfg[creepType];
-            if (!typeCfg) {
-                throw new Error(`typeCfg is undefined for ${creepType} in ${homeRoom} going to ${room}`);
-            }
+			if (!typeCfg) {
+				throw new Error(
+					`typeCfg is undefined for ${creepType} in ${homeRoom} going to ${room}`,
+				);
+			}
 			const creeps = _.filter(
 				Game.creeps,
 				(creep: BaseCreep) =>
@@ -213,17 +212,14 @@ function sendExtraditions(homeRoom: RoomID) {
 Returns the number of creeps belonging to a room
 */
 function getCreepsForRoom(homeRoom: RoomID, role: CreepType) {
-    let n = 0;
-    for (const c in Game.creeps) {
-        const creep = Game.creeps[c] as BaseCreep;
-        if (creep.memory.home === homeRoom && creep.memory.role === role) {
-            n++;
-        }
-    }
-    return n;
+	let n = 0;
+	for (const c in Game.creeps) {
+		const creep = Game.creeps[c] as BaseCreep;
+		if (creep.memory.home === homeRoom && creep.memory.role === role) {
+			n++;
+		}
+	}
+	return n;
 }
 
-module.exports = { run };
-
-// This just makes sure that typescript recognises the file as a module.
-export default module.exports;
+export default { run };
