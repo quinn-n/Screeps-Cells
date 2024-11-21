@@ -13,4 +13,5 @@ function loop() {
 	}
 }
 
-export default { loop };
+// Make sure the game can find the loop function
+module.exports = { loop };
