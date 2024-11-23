@@ -1,6 +1,6 @@
 import type { WorkerCreepTask } from "./creep.worker";
 import type { CreepType } from "./role.room";
-import { BaseRoom } from "./room";
+import type { BaseRoom } from "./room";
 import type { RoomID } from "./types";
 
 export interface BaseCreepMemory extends CreepMemory {
@@ -47,7 +47,7 @@ export abstract class BaseCreep extends Creep {
 	}
 
 	public memory: BaseCreepMemory = super.memory as BaseCreepMemory;
-	public room: BaseRoom = new BaseRoom(this.memory.room);
+	public room: BaseRoom = this.room as BaseRoom;
 }
 
 module.exports = { BaseCreep };
