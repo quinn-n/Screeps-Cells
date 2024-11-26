@@ -3,13 +3,64 @@ import type { Ticker } from "./ticker";
 import type { BaseCreep, StorageStructure } from "./types";
 
 interface BaseRoomMemory extends RoomMemory {
-	_creepTravelTimes: {
-		[key in CreepType]: number[];
-	};
+	spawnQueue: SpawnQueueEntry[];
+}
+
+interface SpawnQueueEntry {
+	body: BodyPartConstant[];
+	name: string;
+	opts: SpawnOptions;
 }
 
 export class BaseRoom extends Room implements Ticker {
-	public tick() {}
+	public tick() {
+		this.spawnCreepsFromQueue();
+	}
+
+	/**
+	 * Spawns as many creeps as possible from the spawn queue
+	 */
+	public spawnCreepsFromQueue() {
+		do {
+			const spawn = this.getFreeSpawn();
+			if (spawn === null) {
+				return;
+			}
+
+			const queueEntry = this.memory.spawnQueue.shift();
+			if (queueEntry === undefined) {
+				return;
+			}
+
+			const { body, name, opts } = queueEntry;
+			const spawnError = spawn.spawnCreep(body, name, opts);
+			if (spawnError === ERR_NOT_ENOUGH_ENERGY) {
+				return;
+			}
+		} while (this.memory.spawnQueue.length > 0);
+	}
+
+	/**
+	 * Get the first spawn that is not currently spawning
+	 */
+	public getFreeSpawn() {
+		const spawns = this.find(FIND_MY_SPAWNS);
+		for (const spawn of spawns) {
+			if (!spawn.spawning) {
+				return spawn;
+			}
+		}
+		return null;
+	}
+
+	public addCreepToSpawnQueue(
+		body: BodyPartConstant[],
+		name: string,
+		opts: SpawnOptions,
+	) {
+		this.memory.spawnQueue.push({ body, name, opts });
+	}
+
 	public getCreeps(role?: CreepType) {
 		return this.find(FIND_MY_CREEPS, {
 			filter: (creep: BaseCreep) => {
@@ -68,4 +119,6 @@ export class BaseRoom extends Room implements Ticker {
 		}
 		return ERR_FULL;
 	}
+
+	public memory: BaseRoomMemory = this.memory;
 }
