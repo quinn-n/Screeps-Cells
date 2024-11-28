@@ -56,14 +56,18 @@ function run(creep: HarvestingCreep) {
 
 /*
 Repairs structures in the creep's room
+starting with the lowest health structures
 */
 function repair(creep: Creep) {
-	const structures = _.filter(
+	const structures: Structure[] = _.filter(
 		creep.room.find(FIND_STRUCTURES),
 		(structure: Structure) =>
 			structure.hits < structure.hitsMax &&
 			structure.structureType !== STRUCTURE_WALL,
 	);
+	// Sort structure hp from lowest to highest
+	structures.sort((a, b) => a.hits / a.hitsMax - b.hits / b.hitsMax);
+
 	for (const s in structures) {
 		const structure = structures[s];
 		const repairErr = creep.repair(structure);
