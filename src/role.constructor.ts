@@ -60,7 +60,9 @@ Repairs structures in the creep's room
 function repair(creep: Creep) {
 	const structures = _.filter(
 		creep.room.find(FIND_STRUCTURES),
-		(structure: Structure) => structure.hits < structure.hitsMax,
+		(structure: Structure) =>
+			structure.hits < structure.hitsMax &&
+			structure.structureType !== STRUCTURE_WALL,
 	);
 	for (const s in structures) {
 		const structure = structures[s];
