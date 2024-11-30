@@ -1,5 +1,7 @@
 import { BaseCreep, type BaseCreepMemory } from "./creep.base";
 
+export const ROLE_WORKER = "worker";
+
 export type WorkerCreepTask =
 	| "harvesting"
 	| "depositing"
