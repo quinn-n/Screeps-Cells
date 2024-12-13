@@ -50,6 +50,8 @@ export abstract class BaseCreep extends Creep {
 	public room: BaseRoom = this.room as BaseRoom;
 }
 
-module.exports = { BaseCreep };
+export function generateCreepName(baseName: string) {
+	return `${baseName}-${Game.time}`;
+}
 
-export default module.exports;
+export default { BaseCreep };

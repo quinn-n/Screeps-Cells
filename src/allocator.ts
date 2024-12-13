@@ -1,3 +1,4 @@
+import { generateCreepName } from "./creep.base";
 import { ROLE_WORKER, type WorkerCreep } from "./creep.worker";
 import type { CreepType } from "./role.room";
 import type { BaseRoom } from "./room";
@@ -78,6 +79,9 @@ class Allocator implements Ticker {
 		// If we still need more capacity, spawn new creeps
 		neededCapacity -= capacityAdded;
 		const room = source.room as BaseRoom;
+		const harvesterBody = this.generateHarvesterBody(room, neededCapacity);
+		const name = generateCreepName(ROLE_WORKER);
+		room.addCreepToSpawnQueue(harvesterBody, ROLE_WORKER, {});
 	}
 
 	public generateHarvesterBody(room: BaseRoom, maxCapacity: number) {
