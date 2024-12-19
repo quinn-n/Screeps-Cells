@@ -1,13 +1,26 @@
 import { BaseCreep, type BaseCreepMemory } from "./creep.base";
 
-export const ROLE_WORKER = "worker";
+export type ROLE_WORKER = "worker";
+export declare const ROLE_WORKER: ROLE_WORKER;
+
+export type WORKER_TASK_HARVESTING = "harvesting";
+export type WORKER_TASK_DEPOSITING = "depositing";
+export type WORKER_TASK_UPGRADING = "upgrading";
+export type WORKER_TASK_BUILDING = "building";
+export type WORKER_TASK_REPAIRING = "repairing";
+
+export declare const WORKER_TASK_HARVESTING: WORKER_TASK_HARVESTING;
+export declare const WORKER_TASK_DEPOSITING: WORKER_TASK_DEPOSITING;
+export declare const WORKER_TASK_UPGRADING: WORKER_TASK_UPGRADING;
+export declare const WORKER_TASK_BUILDING: WORKER_TASK_BUILDING;
+export declare const WORKER_TASK_REPAIRING: WORKER_TASK_REPAIRING;
 
 export type WorkerCreepTask =
-	| "harvesting"
-	| "depositing"
-	| "upgrading"
-	| "building"
-	| "repairing";
+	| WORKER_TASK_HARVESTING
+	| WORKER_TASK_DEPOSITING
+	| WORKER_TASK_UPGRADING
+	| WORKER_TASK_BUILDING
+	| WORKER_TASK_REPAIRING;
 
 export interface WorkerCreepMemory extends BaseCreepMemory {
 	targetSource: Id<Source> | null;
@@ -16,26 +29,21 @@ export interface WorkerCreepMemory extends BaseCreepMemory {
 
 export class WorkerCreep extends BaseCreep {
 	public tick() {
-		if (this.currentTask !== "harvesting") {
-			this.memory.targetSource = null;
-		}
-
-		if (this.currentTask === "harvesting") {
+		if (this.currentTask === WORKER_TASK_HARVESTING) {
 			this._harvest();
 		}
 
-		if (this.currentTask === "depositing") {
+		if (this.currentTask === WORKER_TASK_DEPOSITING) {
 			this._deposit();
 		}
 
 		if (this.store.getUsedCapacity() === 0) {
-			this.currentTask = "harvesting";
+			this.currentTask = WORKER_TASK_DEPOSITING;
 		}
 	}
 
 	private _harvest() {
 		// targetSource should be set by the allocator
-		// TODO: Ask the allocator to find a new source in either of these cases.
 		if (this.memory.targetSource === null) {
 			console.error(
 				`Creep ${this.name} in room ${this.room.name} has no target source!`,
@@ -53,9 +61,6 @@ export class WorkerCreep extends BaseCreep {
 		const harvestError = this.harvest(source);
 		if (harvestError === ERR_NOT_IN_RANGE) {
 			this.moveTo(source);
-		}
-		if (harvestError === ERR_NOT_ENOUGH_RESOURCES) {
-			this.memory.targetSource = null;
 		}
 	}
 

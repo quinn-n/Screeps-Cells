@@ -1,5 +1,5 @@
+import type { CreepType } from "./creep.types";
 import type { WorkerCreepTask } from "./creep.worker";
-import type { CreepType } from "./role.room";
 import type { BaseRoom } from "./room";
 import type { RoomID } from "./types";
 

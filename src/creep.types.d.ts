@@ -1,3 +1,3 @@
-export const CreepWorker = "worker";
+import type { ROLE_WORKER } from "./creep.worker";
 
-export type CreepType = CreepWorker;
+export type CreepType = ROLE_WORKER;
