@@ -1,9 +1,12 @@
-import { generateCreepName } from "./creep.base";
-import { ROLE_WORKER, type WorkerCreep } from "./creep.worker";
-import type { CreepType } from "./role.room";
+import { type BaseCreep, generateCreepName } from "./creep.base";
+import type { CreepType } from "./creep.types";
+import {
+	ROLE_WORKER,
+	WORKER_TASK_HARVESTING,
+	type WorkerCreep,
+} from "./creep.worker";
 import type { BaseRoom } from "./room";
 import type { Ticker } from "./ticker";
-import type { BaseCreep } from "./types";
 
 import _ from "lodash";
 
@@ -36,6 +39,12 @@ export default class Allocator implements Ticker {
 		}
 	}
 
+	private constructor() {}
+
+	/**
+	 * Allocates the right number of harvesters to each source in a room
+	 * @param harvestRatio (number) How much energy to harvest from each source from 0 to 1
+	 */
 	public allocateHarvesters(room: BaseRoom, harvestRatio: number) {
 		const sources = room.find(FIND_SOURCES);
 		for (const source of sources) {
@@ -273,8 +282,8 @@ export default class Allocator implements Ticker {
 	protected getCreepsByType(type: CreepType): BaseCreep[] {
 		return _.filter(
 			Game.creeps,
-			(creep: BaseCreep) => creep.memory.role === type,
-		);
+			(creep: Creep) => (creep as BaseCreep).memory.role === type,
+		) as BaseCreep[];
 	}
 
 	/**
@@ -337,6 +346,18 @@ export default class Allocator implements Ticker {
 	}
 
 	public memory: AllocatorMemory = Memory.allocator;
+
+	/**
+	 * Returns the singleton instance of the Allocator
+	 */
+	public static get Instance() {
+		if (Allocator._instance === null) {
+			Allocator._instance = new Allocator();
+		}
+		return Allocator._instance;
+	}
+
+	private static _instance: Allocator | null = null;
 }
 
 /**
