@@ -304,8 +304,21 @@ class Allocator implements Ticker {
 	 * @param time (number) The time taken to deposit the energy
 	 * @param amount (number) The amount of energy deposited
 	 */
-	public addSourceDepositTime(source: Source, time: number, amount: number) {
-		this.memory._sourceDepositTimes[source.id].unshift({ time, amount });
+	public addSourceDepositTime(
+		source: Source,
+		creep: BaseCreep,
+		time: number,
+		amount: number,
+	) {
+		const workMoveRatio =
+			creep.body.filter((part) => part.type === WORK).length /
+			creep.body.filter((part) => part.type === MOVE).length;
+
+		this.memory._sourceDepositTimes[source.id].unshift({
+			time,
+			amount,
+			workMoveRatio,
+		});
 		while (this.memory._sourceDepositTimes[source.id].length > HISTORY_LENGTH) {
 			this.memory._sourceDepositTimes[source.id].pop();
 		}
