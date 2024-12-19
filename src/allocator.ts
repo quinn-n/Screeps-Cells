@@ -22,8 +22,19 @@ interface AllocatorMemory {
 	_sourceDepositTimes: Record<Id<Source>, DepositRecord[]>;
 }
 
-class Allocator implements Ticker {
-	public tick() {}
+export default class Allocator implements Ticker {
+	public tick() {
+		for (const room of Object.values(Game.rooms) as BaseRoom[]) {
+			const controller = room.controller;
+			// If there's no controller, this isn't my room.
+			if (controller === undefined || controller.my === false) {
+				return;
+			}
+			// Scale up the energy harvested based on the controller level
+			const harvestRatio = Math.min(controller.level / 4, 1);
+			this.allocateHarvesters(room, harvestRatio);
+		}
+	}
 
 	public allocateHarvesters(room: BaseRoom, harvestRatio: number) {
 		const sources = room.find(FIND_SOURCES);
