@@ -42,11 +42,6 @@ export default class Allocator implements Ticker {
 			const energyToHarvest = source.energyCapacity * harvestRatio;
 			this.removeExcessHarvesters(source, energyToHarvest);
 			this.addRequiredHarvesters(source, energyToHarvest);
-			const totalWorkRequiredPerCycle = energyToHarvest / HARVEST_POWER;
-
-			// Harvest:deposit time ratio
-			const harvestTimeRatio =
-				HARVEST_POWER / CARRY_CAPACITY / this.getAverageDepositTime(source);
 		}
 	}
 
@@ -96,7 +91,13 @@ export default class Allocator implements Ticker {
 			neededCapacity / ENERGY_REGEN_TIME,
 		);
 		const name = generateCreepName(ROLE_WORKER);
-		room.addCreepToSpawnQueue(harvesterBody, ROLE_WORKER, {});
+		room.addCreepToSpawnQueue(harvesterBody, ROLE_WORKER, {
+			memory: {
+				role: ROLE_WORKER,
+				targetSource: source.id,
+				targetTask: WORKER_TASK_HARVESTING,
+			},
+		});
 	}
 
 	/**
