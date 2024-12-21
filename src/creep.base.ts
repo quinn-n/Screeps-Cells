@@ -1,19 +1,19 @@
-import type { CreepType } from "./creep.types";
-import type { WorkerCreepTask } from "./creep.worker";
-import type { BaseRoom } from "./room";
+import type { CreepTask, CreepType } from "./creep.types";
+import { BaseRoom } from "./room";
 import type { RoomID } from "./types";
+
+export type ROLE_BASE_CREEP = "base_creep";
+export const ROLE_BASE_CREEP: ROLE_BASE_CREEP = "base_creep";
 
 export interface BaseCreepMemory extends CreepMemory {
 	role: CreepType;
-	currentTask: BaseCreepTask;
-	targetTask: BaseCreepTask;
+	currentTask: CreepTask;
+	targetTask: CreepTask;
 	home: RoomID;
 	room: RoomID;
 	spawner: Id<StructureSpawn>;
 	toRecycle: boolean;
 }
-
-export type BaseCreepTask = "" | WorkerCreepTask;
 
 export abstract class BaseCreep extends Creep {
 	public abstract tick(): void;
@@ -32,22 +32,22 @@ export abstract class BaseCreep extends Creep {
 	 */
 	protected abstract get _shouldUpdateTask(): boolean;
 
-	public get targetTask(): BaseCreepTask {
+	public get targetTask(): CreepTask {
 		return this.memory.targetTask;
 	}
-	public set targetTask(newTask: BaseCreepTask) {
+	public set targetTask(newTask: CreepTask) {
 		this.memory.targetTask = newTask;
 	}
 
-	public get currentTask(): BaseCreepTask {
+	public get currentTask(): CreepTask {
 		return this.memory.currentTask;
 	}
-	protected set currentTask(newTask: BaseCreepTask) {
+	protected set currentTask(newTask: CreepTask) {
 		this.memory.currentTask = newTask;
 	}
 
 	public memory: BaseCreepMemory = super.memory as BaseCreepMemory;
-	public room: BaseRoom = this.room as BaseRoom;
+	public room: BaseRoom = BaseRoom.fromRoom(this.room);
 }
 
 export function generateCreepName(baseName: string) {

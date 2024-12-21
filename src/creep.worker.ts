@@ -1,7 +1,7 @@
 import { BaseCreep, type BaseCreepMemory } from "./creep.base";
 
-export type ROLE_WORKER = "worker";
-export declare const ROLE_WORKER: ROLE_WORKER;
+export type ROLE_WORKER_CREEP = "worker";
+export const ROLE_WORKER_CREEP: ROLE_WORKER_CREEP = "worker";
 
 export type WORKER_TASK_HARVESTING = "harvesting";
 export type WORKER_TASK_DEPOSITING = "depositing";
@@ -9,11 +9,11 @@ export type WORKER_TASK_UPGRADING = "upgrading";
 export type WORKER_TASK_BUILDING = "building";
 export type WORKER_TASK_REPAIRING = "repairing";
 
-export declare const WORKER_TASK_HARVESTING: WORKER_TASK_HARVESTING;
-export declare const WORKER_TASK_DEPOSITING: WORKER_TASK_DEPOSITING;
-export declare const WORKER_TASK_UPGRADING: WORKER_TASK_UPGRADING;
-export declare const WORKER_TASK_BUILDING: WORKER_TASK_BUILDING;
-export declare const WORKER_TASK_REPAIRING: WORKER_TASK_REPAIRING;
+export const WORKER_TASK_HARVESTING: WORKER_TASK_HARVESTING = "harvesting";
+export const WORKER_TASK_DEPOSITING: WORKER_TASK_DEPOSITING = "depositing";
+export const WORKER_TASK_UPGRADING: WORKER_TASK_UPGRADING = "upgrading";
+export const WORKER_TASK_BUILDING: WORKER_TASK_BUILDING = "building";
+export const WORKER_TASK_REPAIRING: WORKER_TASK_REPAIRING = "repairing";
 
 export type WorkerCreepTask =
 	| WORKER_TASK_HARVESTING
