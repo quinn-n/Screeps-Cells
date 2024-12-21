@@ -1,6 +1,6 @@
 import Allocator from "./allocator";
 import cleanup from "./cleanup";
-import { createCreepInstance } from "./misc";
+import { createCreepInstance } from "./creep";
 import pixelGenerator from "./pixel.generator";
 import { BaseRoom } from "./room";
 

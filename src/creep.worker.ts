@@ -1,30 +1,15 @@
+import Allocator from "./allocator";
 import { BaseCreep, type BaseCreepMemory } from "./creep.base";
-
-export type ROLE_WORKER_CREEP = "worker";
-export const ROLE_WORKER_CREEP: ROLE_WORKER_CREEP = "worker";
-
-export type WORKER_TASK_HARVESTING = "harvesting";
-export type WORKER_TASK_DEPOSITING = "depositing";
-export type WORKER_TASK_UPGRADING = "upgrading";
-export type WORKER_TASK_BUILDING = "building";
-export type WORKER_TASK_REPAIRING = "repairing";
-
-export const WORKER_TASK_HARVESTING: WORKER_TASK_HARVESTING = "harvesting";
-export const WORKER_TASK_DEPOSITING: WORKER_TASK_DEPOSITING = "depositing";
-export const WORKER_TASK_UPGRADING: WORKER_TASK_UPGRADING = "upgrading";
-export const WORKER_TASK_BUILDING: WORKER_TASK_BUILDING = "building";
-export const WORKER_TASK_REPAIRING: WORKER_TASK_REPAIRING = "repairing";
-
-export type WorkerCreepTask =
-	| WORKER_TASK_HARVESTING
-	| WORKER_TASK_DEPOSITING
-	| WORKER_TASK_UPGRADING
-	| WORKER_TASK_BUILDING
-	| WORKER_TASK_REPAIRING;
+import {
+	WORKER_TASK_DEPOSITING,
+	WORKER_TASK_HARVESTING,
+	type WorkerCreepTask,
+} from "./creep.types";
 
 export interface WorkerCreepMemory extends BaseCreepMemory {
 	targetSource: Id<Source> | null;
 	currentTask: WorkerCreepTask;
+	depositStartTime: number;
 }
 
 export class WorkerCreep extends BaseCreep {
@@ -36,6 +21,7 @@ export class WorkerCreep extends BaseCreep {
 		if (this.currentTask === WORKER_TASK_HARVESTING) {
 			const err = this._harvest();
 			if (err !== OK || this.store.getFreeCapacity() === 0) {
+				console.log("Switching to deposit mode");
 				this.currentTask = WORKER_TASK_DEPOSITING;
 				this.depositStartTime = Game.time;
 			}
@@ -44,7 +30,29 @@ export class WorkerCreep extends BaseCreep {
 		if (this.currentTask === WORKER_TASK_DEPOSITING) {
 			const err = this._deposit();
 			if (err !== OK || this.store.getUsedCapacity() === 0) {
+				console.log("Switching to harvest mode");
 				this.currentTask = WORKER_TASK_HARVESTING;
+				if (this.memory.targetSource === null) {
+					console.log(
+						`Creep ${this.name} in room ${this.room.name} has no target source!`,
+					);
+					return;
+				}
+
+				const timeTaken = Game.time - this.depositStartTime;
+				// If the creep didn't spend any time depositing, storage is full.
+				// So don't save the deposit time.
+				// TODO: Clear task from creep so the allocator can reuse the creep.
+				if (timeTaken === 0) {
+					return;
+				}
+
+				const allocator = Allocator.Instance;
+				allocator.addSourceDepositTime(
+					this.memory.targetSource,
+					this,
+					Game.time - this.depositStartTime,
+				);
 			}
 		}
 	}
@@ -103,6 +111,14 @@ export class WorkerCreep extends BaseCreep {
 
 		const hasNoTask = this.currentTask === "";
 		return justFinishedHarvesting || hasNoTask;
+	}
+
+	protected set depositStartTime(time: number) {
+		this.memory.depositStartTime = time;
+	}
+
+	protected get depositStartTime() {
+		return this.memory.depositStartTime;
 	}
 
 	public memory: WorkerCreepMemory = this.memory;

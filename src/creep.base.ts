@@ -2,9 +2,6 @@ import type { CreepTask, CreepType } from "./creep.types";
 import { BaseRoom } from "./room";
 import type { RoomID } from "./types";
 
-export type ROLE_BASE_CREEP = "base_creep";
-export const ROLE_BASE_CREEP: ROLE_BASE_CREEP = "base_creep";
-
 export interface BaseCreepMemory extends CreepMemory {
 	role: CreepType;
 	currentTask: CreepTask;

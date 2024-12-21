@@ -1,10 +1,11 @@
 import { type BaseCreep, generateCreepName } from "./creep.base";
-import type { CreepType } from "./creep.types";
 import {
 	ROLE_WORKER_CREEP,
 	WORKER_TASK_HARVESTING,
-	type WorkerCreep,
-} from "./creep.worker";
+	type CreepType,
+} from "./creep.types";
+import type { WorkerCreep } from "./creep.worker";
+import { mean } from "./misc";
 import { BaseRoom } from "./room";
 import type { Ticker } from "./ticker";
 
@@ -12,7 +13,6 @@ import _ from "lodash";
 
 interface DepositRecord {
 	time: number;
-	amount: number;
 	workMoveRatio: number;
 }
 
@@ -374,7 +374,9 @@ export default class Allocator implements Ticker {
 		) {
 			return 1;
 		}
-		return _.meanBy(this.memory._sourceDepositTimes[source.id], "time");
+		return mean(
+			this.memory._sourceDepositTimes[source.id].map((record) => record.time),
+		);
 	}
 
 	/**
@@ -382,25 +384,22 @@ export default class Allocator implements Ticker {
 	 * If the history is longer than HISTORY_LENGTH, remove the oldest entries.
 	 * @param source (Source) The source to add a deposit time for
 	 * @param time (number) The time taken to deposit the energy
-	 * @param amount (number) The amount of energy deposited
 	 */
 	public addSourceDepositTime(
-		source: Source,
+		sourceId: Id<Source>,
 		creep: BaseCreep,
 		time: number,
-		amount: number,
 	) {
 		const workMoveRatio =
 			creep.body.filter((part) => part.type === WORK).length /
 			creep.body.filter((part) => part.type === MOVE).length;
 
-		this.memory._sourceDepositTimes[source.id].unshift({
+		this.memory._sourceDepositTimes[sourceId].unshift({
 			time,
-			amount,
 			workMoveRatio,
 		});
-		while (this.memory._sourceDepositTimes[source.id].length > HISTORY_LENGTH) {
-			this.memory._sourceDepositTimes[source.id].pop();
+		while (this.memory._sourceDepositTimes[sourceId].length > HISTORY_LENGTH) {
+			this.memory._sourceDepositTimes[sourceId].pop();
 		}
 	}
 
