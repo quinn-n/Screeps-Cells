@@ -101,15 +101,20 @@ export default class Allocator implements Ticker {
 		}
 
 		// If we still need more capacity, spawn new creeps
+
+		// If there's already a worker in the spawn queue, don't add another
+		if (room.hasRoleInSpawnQueue(ROLE_WORKER_CREEP)) {
+			return;
+		}
+
 		neededCapacity -= capacityAdded;
 		const harvesterBody = this.generateHarvesterBody(
 			source,
 			neededCapacity / ENERGY_REGEN_TIME,
 		);
-		room.addCreepToSpawnQueue(harvesterBody, ROLE_WORKER, {
 		const name = generateCreepName(ROLE_WORKER_CREEP);
+		room.addCreepToSpawnQueue(ROLE_WORKER_CREEP, harvesterBody, name, {
 			memory: {
-				role: ROLE_WORKER,
 				targetSource: source.id,
 				targetTask: WORKER_TASK_HARVESTING,
 			},
@@ -164,11 +169,11 @@ export default class Allocator implements Ticker {
 		);
 
 		// Get max possible work segments for a maximum cost creep
-		// Same math as above but with energy cost instead of size cost
-		const costRatio =
-			BODYPART_COST[MOVE] / (BODYPART_COST[WORK] + BODYPART_COST[CARRY]);
+		// cost of work segments + cost of move segments * work to move ratio
 		const maxWorkSegmentsForCostLimit = Math.floor(
-			source.room.energyCapacityAvailable / (costRatio + 2),
+			source.room.energyCapacityAvailable /
+				(BODYPART_COST[WORK] + BODYPART_COST[CARRY]) +
+				BODYPART_COST[MOVE] * cappedMoveRatio,
 		);
 
 		// Take the minimum of the three limits as the number of work segments to use
@@ -198,6 +203,15 @@ export default class Allocator implements Ticker {
 	 * @param source (Id<Source>) The source to generate the curve for
 	 */
 	private getMoveRatioFromTimeFunction(sourceId: Id<Source>) {
+		// If the source is new to the allocator, return a constant function that always returns 1.
+		if (
+			this.memory._sourceDepositTimes[sourceId] === undefined ||
+			this.memory._sourceDepositTimes[sourceId].length === 0
+		) {
+			this.memory._sourceDepositTimes[sourceId] = [];
+			return () => 1;
+		}
+
 		const sourceDepositTimes = Array.from(
 			this.memory._sourceDepositTimes[sourceId],
 		);
@@ -265,20 +279,40 @@ export default class Allocator implements Ticker {
 	 * @returns (number) The estimated energy extraction per regen cycle
 	 */
 	public getEstimatedSourceExtractionPerCycle(source: Source) {
-		const assignedCreeps = this.getAssignedCreeps(source);
-
-		const extractionPerCycle = _.sumBy(assignedCreeps, (creep) =>
-			this.calculateTotalExtractionPerCycle(source, creep),
+		const currentAssignedCreeps = this.getAssignedCreeps(source);
+		const currentExtractionRate = _.sum(
+			currentAssignedCreeps.map((creep) =>
+				this.calculateTotalExtractionPerCycle(source, creep as WorkerCreep),
+			),
 		);
 
-		return extractionPerCycle;
+		return currentExtractionRate;
+
+		/*
+		// TODO: Add creeps in spawn queue to this calculation
+		const room = BaseRoom.fromRoom(source.room);
+		const queuedCreeps = room.memory.spawnQueue.filter((entry) => {
+			const memory = entry.opts?.memory;
+			if (memory === undefined) {
+				return false;
+			}
+			if (memory.role !== ROLE_WORKER_CREEP) {
+				return false;
+			}
+			const isAssignedToSource =
+				(memory as WorkerCreepMemory).targetSource === source.id;
+			return isAssignedToSource;
+		});
+		*/
 	}
 
 	/**
 	 * Get all the creeps assigned to a source
 	 */
 	public getAssignedCreeps(source: Source) {
-		const workerCreeps = this.getCreepsByType(ROLE_WORKER) as WorkerCreep[];
+		const workerCreeps = this.getCreepsByType(
+			ROLE_WORKER_CREEP,
+		) as WorkerCreep[];
 
 		return _.filter(
 			workerCreeps,
@@ -311,17 +345,35 @@ export default class Allocator implements Ticker {
 	 * @returns (number) The total extraction rate
 	 */
 	public calculateTotalExtractionRate(source: Source, creep: WorkerCreep) {
-		const workSegments = creep.body.filter((part) => part.type === WORK).length;
 		const storageCapacity = creep.store.getCapacity();
-		const extractionRate = workSegments * HARVEST_POWER;
-		const extractionTime = storageCapacity / extractionRate;
+		const extractionTime = this.getExtractionTime(creep);
 
 		return (
 			storageCapacity / (extractionTime + this.getAverageDepositTime(source))
 		);
 	}
 
+	/**
+	 * Calculate the time taken to fill a creep's storage capacity from a source
+	 */
+	public getExtractionTime(creep: WorkerCreep) {
+		const workSegments = creep.body.filter((part) => part.type === WORK).length;
+		const storageCapacity = creep.store.getCapacity();
+		const extractionRate = workSegments * HARVEST_POWER;
+		return storageCapacity / extractionRate;
+	}
+
+	/**
+	 * Calculates the mean extraction time for a given source
+	 * TODO: Change this to work with a move:work ratio for a more accurate per-creep time
+	 */
 	public getAverageDepositTime(source: Source) {
+		if (
+			this.memory._sourceDepositTimes[source.id] === undefined ||
+			this.memory._sourceDepositTimes[source.id].length === 0
+		) {
+			return 1;
+		}
 		return _.meanBy(this.memory._sourceDepositTimes[source.id], "time");
 	}
 

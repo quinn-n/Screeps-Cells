@@ -1,15 +1,21 @@
-import { type CreepType, CreepWorker } from "./creep.types";
+import type { BaseCreep } from "./creep.base";
+import type { CreepMemoryMap, CreepType } from "./creep.types";
 import type { Ticker } from "./ticker";
-import type { BaseCreep, StorageStructure } from "./types";
+import type { StorageStructure } from "./types";
 
 interface BaseRoomMemory extends RoomMemory {
-	spawnQueue: SpawnQueueEntry[];
+	spawnQueue: SpawnQueueEntry<CreepType>[];
 }
 
-interface SpawnQueueEntry {
+interface SpawnQueueOptions<Creep_T extends CreepType> extends SpawnOptions {
+	memory?: Partial<CreepMemoryMap[Creep_T]>;
+}
+
+interface SpawnQueueEntry<Creep_T extends CreepType> {
+	role: Creep_T;
 	body: BodyPartConstant[];
 	name: string;
-	opts: SpawnOptions;
+	opts: SpawnQueueOptions<Creep_T>;
 }
 
 export class BaseRoom extends Room implements Ticker {
@@ -59,7 +65,12 @@ export class BaseRoom extends Room implements Ticker {
 				return;
 			}
 
-			const { body, name, opts } = queueEntry;
+			const { body, name, opts, role } = queueEntry;
+			if (opts.memory === undefined) {
+				opts.memory = {};
+			}
+			opts.memory.role = role;
+
 			const spawnError = spawn.spawnCreep(body, name, opts);
 			if (spawnError === ERR_NOT_ENOUGH_ENERGY) {
 				return;
@@ -80,12 +91,32 @@ export class BaseRoom extends Room implements Ticker {
 		return null;
 	}
 
-	public addCreepToSpawnQueue(
+	/**
+	 * Add a creep to the spawn queue.
+	 * Role is automatically saved to the creep's memory
+	 * @param role (CreepType) The creep's role.
+	 * @param body (BodyPartConstant[]) The body parts of the creep.
+	 * @param name (string) The name of the creep.
+	 * @param opts (SpawnQueueOptions) The options for spawning the creep.
+	 */
+	public addCreepToSpawnQueue<Creep_T extends CreepType>(
+		role: Creep_T,
 		body: BodyPartConstant[],
 		name: string,
-		opts: SpawnOptions,
+		opts: SpawnQueueOptions<Creep_T> = {},
 	) {
-		this.memory.spawnQueue.push({ body, name, opts });
+		this.memory.spawnQueue.push({ body, name, opts, role });
+	}
+
+	/**
+	 * Check if a creep with the given role is in the spawn queue
+	 * @param role (CreepType) The role to check for
+	 * @returns (boolean)
+	 */
+	public hasRoleInSpawnQueue(role: CreepType) {
+		return this.memory.spawnQueue.some((entry) => {
+			return entry.role === role;
+		});
 	}
 
 	public getCreeps(role?: CreepType) {
@@ -115,8 +146,12 @@ export class BaseRoom extends Room implements Ticker {
 		];
 		for (const priority of structurePriority) {
 			const structures = this.find(FIND_MY_STRUCTURES, {
-				filter: (structure: StorageStructure) => {
-					const freeCapacity = structure.store.getFreeCapacity(resource);
+				filter: (structure: OwnedStructure) => {
+					if (!("store" in structure)) {
+						return false;
+					}
+					const storageStructure = structure as StorageStructure;
+					const freeCapacity = storageStructure.store.getFreeCapacity(resource);
 					// free capacity is null if the structure can't store the resource
 					if (freeCapacity === null) {
 						return false;
