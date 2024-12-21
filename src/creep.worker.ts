@@ -34,15 +34,18 @@ export class WorkerCreep extends BaseCreep {
 
 	public tick() {
 		if (this.currentTask === WORKER_TASK_HARVESTING) {
-			this._harvest();
+			const err = this._harvest();
+			if (err !== OK || this.store.getFreeCapacity() === 0) {
+				this.currentTask = WORKER_TASK_DEPOSITING;
+				this.depositStartTime = Game.time;
+			}
 		}
 
 		if (this.currentTask === WORKER_TASK_DEPOSITING) {
-			this._deposit();
-		}
-
-		if (this.store.getUsedCapacity() === 0) {
-			this.currentTask = WORKER_TASK_DEPOSITING;
+			const err = this._deposit();
+			if (err !== OK || this.store.getUsedCapacity() === 0) {
+				this.currentTask = WORKER_TASK_HARVESTING;
+			}
 		}
 	}
 
@@ -62,17 +65,26 @@ export class WorkerCreep extends BaseCreep {
 			return;
 		}
 
+		if (this.store.getFreeCapacity() === 0) {
+			return ERR_FULL;
+		}
+
 		const harvestError = this.harvest(source);
 		if (harvestError === ERR_NOT_IN_RANGE) {
 			this.moveTo(source);
+			return OK;
 		}
+
+		return harvestError;
 	}
 
 	private _deposit(resource: ResourceConstant = RESOURCE_ENERGY) {
+		if (this.store[resource] === 0) {
+			return ERR_NOT_ENOUGH_RESOURCES;
+		}
 		const target = this.room.findStorageWithSpace(resource);
 		if (target === ERR_FULL) {
-			this.memory.targetTask = "";
-			return;
+			return ERR_FULL;
 		}
 
 		const depositError = this.transfer(target, resource);
