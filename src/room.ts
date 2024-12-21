@@ -75,22 +75,6 @@ export class BaseRoom extends Room implements Ticker {
 		});
 	}
 
-	public getAvailableSources() {
-		const creeps = this.getCreeps(CreepWorker);
-		const sources = this.find(FIND_SOURCES_ACTIVE);
-
-		// TODO: Change this filter to use the estimated remaining energy available per cycle
-		return sources.filter((source) => {
-			const creepsNearSource = source.pos.findInRange(creeps, 1);
-			const openSpaceNearSource =
-				8 - source.pos.findInRange(TERRAIN_MASK_WALL, 1).length;
-			if (creepsNearSource.length < openSpaceNearSource) {
-				return true;
-			}
-			return false;
-		});
-	}
-
 	/**
 	 * Find a storage structure that can store the given resource
 	 * @param resource (ResourceConstant) The resource to store

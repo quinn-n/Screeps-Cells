@@ -75,11 +75,7 @@ export class WorkerCreep extends BaseCreep {
 		if (depositError === ERR_NOT_IN_RANGE) {
 			this.moveTo(target);
 		}
-	}
-
-	protected findClosestAvailableSource() {
-		const sources = this.room.getAvailableSources();
-		return this.pos.findClosestByPath(sources);
+		return OK;
 	}
 
 	/**
