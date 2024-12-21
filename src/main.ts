@@ -1,8 +1,8 @@
 import Allocator from "./allocator";
 import cleanup from "./cleanup";
-import type { BaseCreep } from "./creep.base";
+import { createCreepInstance } from "./misc";
 import pixelGenerator from "./pixel.generator";
-import type { BaseRoom } from "./room";
+import { BaseRoom } from "./room";
 
 function loop() {
 	cleanup.run();
@@ -11,7 +11,7 @@ function loop() {
 	tickRooms();
 	tickCreeps();
 
-	pixelGenerator.run();
+	// pixelGenerator.run();
 }
 
 function tickAllocator() {
@@ -21,7 +21,9 @@ function tickAllocator() {
 }
 
 function tickRooms() {
-	for (const room of Object.values(Game.rooms) as BaseRoom[]) {
+	for (const room of Object.values(Game.rooms).map((room) =>
+		BaseRoom.fromRoom(room),
+	)) {
 		if (room.controller?.my) {
 			room.tick();
 		}
@@ -29,7 +31,9 @@ function tickRooms() {
 }
 
 function tickCreeps() {
-	for (const creep of Object.values(Game.creeps) as BaseCreep[]) {
+	for (const creep of Object.values(Game.creeps).map((creep) =>
+		createCreepInstance(creep),
+	)) {
 		creep.tick();
 	}
 }
