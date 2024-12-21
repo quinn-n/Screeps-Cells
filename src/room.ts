@@ -13,6 +13,33 @@ interface SpawnQueueEntry {
 }
 
 export class BaseRoom extends Room implements Ticker {
+	public constructor(roomId: string) {
+		super(roomId);
+
+		this.initializeMemory();
+
+		// controller is not made available by the constructor
+		this.controller = Game.rooms[roomId].controller;
+	}
+
+	/**
+	 * Instantiates a new BaseRoom object from a Room object
+	 * @param room (Room)
+	 * @returns (BaseRoom)
+	 */
+	public static fromRoom(room: Room) {
+		return new BaseRoom(room.name);
+	}
+
+	/**
+	 * Initialize the room's memory
+	 */
+	private initializeMemory() {
+		if (this.memory.spawnQueue === undefined) {
+			this.memory.spawnQueue = [];
+		}
+	}
+
 	public tick() {
 		this.spawnCreepsFromQueue();
 	}

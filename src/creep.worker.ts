@@ -28,6 +28,10 @@ export interface WorkerCreepMemory extends BaseCreepMemory {
 }
 
 export class WorkerCreep extends BaseCreep {
+	public static fromCreep(creep: Creep) {
+		return new WorkerCreep(creep.id);
+	}
+
 	public tick() {
 		if (this.currentTask === WORKER_TASK_HARVESTING) {
 			this._harvest();

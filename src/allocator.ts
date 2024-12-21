@@ -1,11 +1,11 @@
 import { type BaseCreep, generateCreepName } from "./creep.base";
 import type { CreepType } from "./creep.types";
 import {
-	ROLE_WORKER,
+	ROLE_WORKER_CREEP,
 	WORKER_TASK_HARVESTING,
 	type WorkerCreep,
 } from "./creep.worker";
-import type { BaseRoom } from "./room";
+import { BaseRoom } from "./room";
 import type { Ticker } from "./ticker";
 
 import _ from "lodash";
@@ -27,7 +27,7 @@ interface AllocatorMemory {
 
 export default class Allocator implements Ticker {
 	public tick() {
-		for (const room of Object.values(Game.rooms) as BaseRoom[]) {
+		for (const room of Object.values(Game.rooms)) {
 			const controller = room.controller;
 			// If there's no controller, this isn't my room.
 			if (controller === undefined || controller.my === false) {
@@ -39,13 +39,20 @@ export default class Allocator implements Ticker {
 		}
 	}
 
-	private constructor() {}
+	private constructor() {
+		if (Memory.allocator === undefined) {
+			Memory.allocator = {
+				_sourceDepositTimes: {},
+			};
+		}
+		this.memory = Memory.allocator;
+	}
 
 	/**
 	 * Allocates the right number of harvesters to each source in a room
 	 * @param harvestRatio (number) How much energy to harvest from each source from 0 to 1
 	 */
-	public allocateHarvesters(room: BaseRoom, harvestRatio: number) {
+	public allocateHarvesters(room: Room, harvestRatio: number) {
 		const sources = room.find(FIND_SOURCES);
 		for (const source of sources) {
 			const energyToHarvest = source.energyCapacity * harvestRatio;
@@ -59,13 +66,13 @@ export default class Allocator implements Ticker {
 	 * Pulls from unused creeps first, then spawns largest creeps possible.
 	 */
 	public addRequiredHarvesters(source: Source, minEnergy: number) {
-		const room = source.room as BaseRoom;
+		const room = BaseRoom.fromRoom(source.room);
 
 		const currentEstimate = this.getEstimatedSourceExtractionPerCycle(source);
 		let neededCapacity = minEnergy - currentEstimate;
 
 		const unusedCreeps = _.filter(
-			this.getCreepsByType(ROLE_WORKER),
+			this.getCreepsByType(ROLE_WORKER_CREEP),
 			(creep: WorkerCreep) => {
 				return creep.memory.targetSource === null;
 			},
@@ -99,8 +106,8 @@ export default class Allocator implements Ticker {
 			source,
 			neededCapacity / ENERGY_REGEN_TIME,
 		);
-		const name = generateCreepName(ROLE_WORKER);
 		room.addCreepToSpawnQueue(harvesterBody, ROLE_WORKER, {
+		const name = generateCreepName(ROLE_WORKER_CREEP);
 			memory: {
 				role: ROLE_WORKER,
 				targetSource: source.id,
@@ -345,7 +352,7 @@ export default class Allocator implements Ticker {
 		}
 	}
 
-	public memory: AllocatorMemory = Memory.allocator;
+	public memory: AllocatorMemory;
 
 	/**
 	 * Returns the singleton instance of the Allocator
