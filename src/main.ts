@@ -34,6 +34,10 @@ function tickCreeps() {
 	for (const creep of Object.values(Game.creeps).map((creep) =>
 		createCreepInstance(creep),
 	)) {
+		if (creep.spawning) {
+			continue;
+		}
+
 		creep.tick();
 	}
 }
