@@ -1,3 +1,4 @@
+import _ from "lodash";
 import type { BaseCreep } from "./creep.base";
 import type { CreepMemoryMap, CreepType } from "./creep.types";
 import type { Ticker } from "./ticker";
@@ -5,6 +6,18 @@ import type { StorageStructure } from "./types";
 
 interface BaseRoomMemory extends RoomMemory {
 	spawnQueue: SpawnQueueEntry<CreepType>[];
+	/**
+	 * Energy budget for the room for the last ENERGY_REGEN_TIME ticks.
+	 *
+	 * The time to forget is the tick at which the budget entry should be removed.
+	 * It's done this way so that we don't have to iterate over the entire object every tick,
+	 * even though this implementation is more complex.
+	 */
+	energySpentHistory: { [timeToForget: number]: BudgetEntry };
+}
+
+interface BudgetEntry {
+	amount: number;
 }
 
 interface SpawnQueueOptions<Creep_T extends CreepType> extends SpawnOptions {
@@ -24,8 +37,10 @@ export class BaseRoom extends Room implements Ticker {
 
 		this.initializeMemory();
 
-		// controller is not made available by the constructor
-		this.controller = Game.rooms[roomId].controller;
+		// Copy read-only attributes not set by the constructor
+		const room = Game.rooms[roomId];
+		this.controller = room.controller;
+		this.energyCapacityAvailable = room.energyCapacityAvailable;
 	}
 
 	/**
@@ -44,10 +59,71 @@ export class BaseRoom extends Room implements Ticker {
 		if (this.memory.spawnQueue === undefined) {
 			this.memory.spawnQueue = [];
 		}
+		if (this.memory.energySpentHistory === undefined) {
+			this.memory.energySpentHistory = {};
+		}
 	}
 
 	public tick() {
 		this.spawnCreepsFromQueue();
+
+		this.clearExpiringBudgetEntry();
+	}
+
+	/**
+	 * Clear the budget entry expiring at the current tick if it exists.
+	 */
+	private clearExpiringBudgetEntry() {
+		delete this.memory.energySpentHistory[Game.time];
+	}
+
+	/**
+	 * Add energy spent to the room's budget
+	 * @param amount (number) The amount of energy spent
+	 */
+	public addEnergySpent(amount: number) {
+		const timeToForget = Game.time + ENERGY_REGEN_TIME;
+		if (this.memory.energySpentHistory[timeToForget] === undefined) {
+			this.memory.energySpentHistory[timeToForget] = { amount };
+		} else {
+			this.memory.energySpentHistory[timeToForget].amount += amount;
+		}
+	}
+
+	/**
+	 * Get the total amount of energy spent in the room for the last ENERGY_REGEN_TIME ticks
+	 */
+	public getEnergySpent() {
+		return _.sum(
+			Object.values(this.memory.energySpentHistory).map(
+				(entry) => entry.amount,
+			),
+		);
+	}
+
+	/**
+	 * @returns (boolean) Whether the room wants to stockpile energy
+	 */
+	public isStockpilingEnergy() {
+		const ENERGY_STOCKPILE_THRESHOLD = 0.5;
+
+		const isRefillingSpawnEnergy =
+			this.energyAvailable < this.energyCapacityAvailable;
+		if (isRefillingSpawnEnergy) {
+			return true;
+		}
+
+		if (this.storage === undefined) {
+			return false;
+		}
+
+		const storageEnergy = this.storage.store[RESOURCE_ENERGY];
+		const storageCapacity = this.storage.store.getCapacity(RESOURCE_ENERGY);
+
+		const hasEnergyStockpiled =
+			storageEnergy > storageCapacity * ENERGY_STOCKPILE_THRESHOLD;
+
+		return hasEnergyStockpiled;
 	}
 
 	/**
@@ -72,9 +148,12 @@ export class BaseRoom extends Room implements Ticker {
 			opts.memory.role = role;
 
 			const spawnError = spawn.spawnCreep(body, name, opts);
-			if (spawnError === ERR_NOT_ENOUGH_ENERGY) {
+			if (spawnError !== OK) {
+				this.memory.spawnQueue.unshift(queueEntry);
 				return;
 			}
+			const cost = this._getCreepCost(body);
+			this.addEnergySpent(cost);
 		} while (this.memory.spawnQueue.length > 0);
 	}
 
@@ -89,6 +168,13 @@ export class BaseRoom extends Room implements Ticker {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Get the total cost of a creep with the given body parts
+	 */
+	private _getCreepCost(body: BodyPartConstant[]) {
+		return body.reduce((acc, part) => acc + BODYPART_COST[part], 0);
 	}
 
 	/**

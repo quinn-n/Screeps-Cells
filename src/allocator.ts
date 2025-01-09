@@ -2,6 +2,8 @@ import { type BaseCreep, generateCreepName } from "./creep.base";
 import {
 	ROLE_WORKER_CREEP,
 	WORKER_TASK_HARVESTING,
+	WORKER_TASK_UPGRADING,
+	type WorkerCreepTask,
 	type CreepType,
 } from "./creep.types";
 import type { WorkerCreep } from "./creep.worker";
@@ -10,6 +12,7 @@ import { BaseRoom } from "./room";
 import type { Ticker } from "./ticker";
 
 import _ from "lodash";
+import type { RoomID } from "./types";
 
 interface DepositRecord {
 	time: number;
@@ -23,6 +26,7 @@ interface AllocatorMemory {
 	 * Record of times taken for a harvester to deposit its energy and return to the source
 	 */
 	_sourceDepositTimes: Record<Id<Source>, DepositRecord[]>;
+	_collectionTimes: Record<RoomID, number[]>;
 }
 
 export default class Allocator implements Ticker {
@@ -36,14 +40,20 @@ export default class Allocator implements Ticker {
 			// Scale up the energy harvested based on the controller level
 			const harvestRatio = Math.min(controller.level / 4, 1);
 			this.allocateHarvesters(room, harvestRatio);
+
+			this.allocateUpgraders(BaseRoom.fromRoom(room));
 		}
 	}
 
 	private constructor() {
 		if (Memory.allocator === undefined) {
-			Memory.allocator = {
-				_sourceDepositTimes: {},
-			};
+			Memory.allocator = {};
+		}
+		if (Memory.allocator._sourceDepositTimes === undefined) {
+			Memory.allocator._sourceDepositTimes = {};
+		}
+		if (Memory.allocator._collectionTimes === undefined) {
+			Memory.allocator._collectionTimes = {};
 		}
 		this.memory = Memory.allocator;
 	}
@@ -55,6 +65,8 @@ export default class Allocator implements Ticker {
 	public allocateHarvesters(room: Room, harvestRatio: number) {
 		const sources = room.find(FIND_SOURCES);
 		for (const source of sources) {
+			// TODO: Set energyToHarvest based on the room's energy demand.
+			// to allow for harvesters to be reused for other tasks when storage is full.
 			const energyToHarvest = source.energyCapacity * harvestRatio;
 			this.removeExcessHarvesters(source, energyToHarvest);
 			this.addRequiredHarvesters(source, energyToHarvest);
@@ -68,13 +80,16 @@ export default class Allocator implements Ticker {
 	public addRequiredHarvesters(source: Source, minEnergy: number) {
 		const room = BaseRoom.fromRoom(source.room);
 
-		const currentEstimate = this.getEstimatedSourceExtractionPerCycle(source);
+		const currentEstimate = this.getEstimatedSourceExtractionPerCycle(
+			source,
+			WORKER_TASK_HARVESTING,
+		);
 		let neededCapacity = minEnergy - currentEstimate;
 
 		const unusedCreeps = _.filter(
 			this.getCreepsByType(ROLE_WORKER_CREEP),
 			(creep: WorkerCreep) => {
-				return creep.memory.targetSource === null;
+				return creep.targetTask === undefined;
 			},
 		) as WorkerCreep[];
 
@@ -97,6 +112,7 @@ export default class Allocator implements Ticker {
 				break;
 			}
 			creep.memory.targetSource = source.id;
+			creep.targetTask = WORKER_TASK_HARVESTING;
 			capacityAdded += extractionRate;
 		}
 
@@ -108,11 +124,18 @@ export default class Allocator implements Ticker {
 		}
 
 		neededCapacity -= capacityAdded;
+		if (neededCapacity <= 0) {
+			return;
+		}
+
 		const harvesterBody = this.generateHarvesterBody(
 			source,
 			neededCapacity / ENERGY_REGEN_TIME,
 		);
 		const name = generateCreepName(ROLE_WORKER_CREEP);
+		console.log(
+			`Requesting new harvester ${name} for source ${source.id} which needs ${neededCapacity} capacity.`,
+		);
 		room.addCreepToSpawnQueue(ROLE_WORKER_CREEP, harvesterBody, name, {
 			memory: {
 				targetSource: source.id,
@@ -172,8 +195,9 @@ export default class Allocator implements Ticker {
 		// cost of work segments + cost of move segments * work to move ratio
 		const maxWorkSegmentsForCostLimit = Math.floor(
 			source.room.energyCapacityAvailable /
-				(BODYPART_COST[WORK] + BODYPART_COST[CARRY]) +
-				BODYPART_COST[MOVE] * cappedMoveRatio,
+				(BODYPART_COST[WORK] +
+					BODYPART_COST[CARRY] +
+					BODYPART_COST[MOVE] * cappedMoveRatio),
 		);
 
 		// Take the minimum of the three limits as the number of work segments to use
@@ -249,7 +273,10 @@ export default class Allocator implements Ticker {
 	 * @param minEnergy (number) The minimum energy to harvest from the source
 	 */
 	protected removeExcessHarvesters(source: Source, minEnergy: number) {
-		const currentEstimate = this.getEstimatedSourceExtractionPerCycle(source);
+		const currentEstimate = this.getEstimatedSourceExtractionPerCycle(
+			source,
+			WORKER_TASK_HARVESTING,
+		);
 		const excessCapacity = currentEstimate - minEnergy;
 		const currentCreeps = this.getAssignedCreeps(source);
 		// Sort creeps by extraction rate from greatest to least
@@ -268,7 +295,9 @@ export default class Allocator implements Ticker {
 			if (capacityRemoved + extractionRate > excessCapacity) {
 				break;
 			}
-			creep.memory.targetSource = null;
+			console.log(`Removing creep ${creep.name} from source ${source.id}`);
+			creep.memory.targetSource = undefined;
+			creep.targetTask = undefined;
 			capacityRemoved += extractionRate;
 		}
 	}
@@ -278,8 +307,11 @@ export default class Allocator implements Ticker {
 	 * @param source (Source) The source to calculate the extraction rate for
 	 * @returns (number) The estimated energy extraction per regen cycle
 	 */
-	public getEstimatedSourceExtractionPerCycle(source: Source) {
-		const currentAssignedCreeps = this.getAssignedCreeps(source);
+	public getEstimatedSourceExtractionPerCycle(
+		source: Source,
+		task?: WorkerCreepTask,
+	) {
+		const currentAssignedCreeps = this.getAssignedCreeps(source, task);
 		const currentExtractionRate = _.sum(
 			currentAssignedCreeps.map((creep) =>
 				this.calculateTotalExtractionPerCycle(source, creep as WorkerCreep),
@@ -287,37 +319,110 @@ export default class Allocator implements Ticker {
 		);
 
 		return currentExtractionRate;
+	}
+
+	/**
+	 * Allocate upgraders to a room based on the room's energy production
+	 * @param room
+	 */
+	public allocateUpgraders(room: BaseRoom) {
+		// If there's already an upgrader in the spawn queue, don't add another
+		if (room.hasRoleInSpawnQueue(ROLE_WORKER_CREEP)) {
+			return;
+		}
+
+		const sources = room.find(FIND_SOURCES);
+		const energyProductionPerCycle = _.sum(
+			sources.map((source) =>
+				this.getEstimatedSourceExtractionPerCycle(source),
+			),
+		);
+
+		const energyConsumptionPerCycle = room.getEnergySpent();
+
+		const energySurplusPerCycle =
+			energyProductionPerCycle - energyConsumptionPerCycle;
 
 		/*
-		// TODO: Add creeps in spawn queue to this calculation
-		const room = BaseRoom.fromRoom(source.room);
-		const queuedCreeps = room.memory.spawnQueue.filter((entry) => {
-			const memory = entry.opts?.memory;
-			if (memory === undefined) {
-				return false;
-			}
-			if (memory.role !== ROLE_WORKER_CREEP) {
-				return false;
-			}
-			const isAssignedToSource =
-				(memory as WorkerCreepMemory).targetSource === source.id;
-			return isAssignedToSource;
+		 * If the room is stockpiling energy, try to save 10% of the energy produced per cycle.
+		 */
+		const targetSurplusPerCycle = room.isStockpilingEnergy()
+			? energyProductionPerCycle * 0.1
+			: 0;
+
+		const energyExpenditureNeeded =
+			energySurplusPerCycle - targetSurplusPerCycle;
+
+		const upgraderBody = this.generateUpgraderBody(
+			room,
+			energyExpenditureNeeded,
+		);
+
+		const name = generateCreepName(ROLE_WORKER_CREEP);
+		room.addCreepToSpawnQueue(ROLE_WORKER_CREEP, upgraderBody, name, {
+			memory: {
+				targetTask: WORKER_TASK_UPGRADING,
+			},
 		});
-		*/
+	}
+
+	/**
+	 * Generates a body for an upgrader that can upgrade the controller at a given capacity
+	 * @param room
+	 * @param capacity
+	 */
+	public generateUpgraderBody(room: BaseRoom, capacity: number) {
+		const UPGRADER_SEGMENT = [WORK, MOVE, CARRY];
+
+		// Find the number of segments needed to meet demand
+		const upgradeTime = CARRY_CAPACITY / UPGRADE_CONTROLLER_POWER;
+		const collectionTime = this.getAverageCollectionTime(room);
+		const harvestsPerCycle = Math.floor(
+			ENERGY_REGEN_TIME / (upgradeTime + collectionTime),
+		);
+		const energyNeededPerHarvest = capacity / harvestsPerCycle;
+		const segmentsNeeded = Math.ceil(energyNeededPerHarvest / CARRY_CAPACITY);
+		console.log(`Need a creep with ${segmentsNeeded} segments`);
+
+		// Find the maximum number of segments possible
+		const maxSegmentsForSizeLimit = Math.floor(
+			MAX_CREEP_SIZE / UPGRADER_SEGMENT.length,
+		);
+		const segmentEnergyCost = _.sum(
+			UPGRADER_SEGMENT.map((part) => BODYPART_COST[part]),
+		);
+		const maxSegmentsForEnergyLimit = Math.floor(
+			room.energyCapacityAvailable / segmentEnergyCost,
+		);
+
+		const maxSegments = Math.min(
+			maxSegmentsForSizeLimit,
+			maxSegmentsForEnergyLimit,
+		);
+
+		const nSegments = Math.min(segmentsNeeded, maxSegments);
+
+		const body: BodyPartConstant[] = [];
+		for (let i = 0; i < nSegments; i++) {
+			body.push(...UPGRADER_SEGMENT);
+		}
+		return body;
 	}
 
 	/**
 	 * Get all the creeps assigned to a source
 	 */
-	public getAssignedCreeps(source: Source) {
+	public getAssignedCreeps(source: Source, targetTask?: WorkerCreepTask) {
 		const workerCreeps = this.getCreepsByType(
 			ROLE_WORKER_CREEP,
 		) as WorkerCreep[];
 
-		return _.filter(
-			workerCreeps,
-			(creep: WorkerCreep) => creep.memory.targetSource === source.id,
-		);
+		return _.filter(workerCreeps, (creep: WorkerCreep) => {
+			const hasMatchingTargetTask =
+				targetTask === undefined || creep.targetTask === targetTask;
+
+			return creep.memory.targetSource === source.id && hasMatchingTargetTask;
+		});
 	}
 
 	protected getCreepsByType(type: CreepType): BaseCreep[] {
@@ -390,6 +495,10 @@ export default class Allocator implements Ticker {
 		creep: BaseCreep,
 		time: number,
 	) {
+		if (this.memory._sourceDepositTimes[sourceId] === undefined) {
+			this.memory._sourceDepositTimes[sourceId] = [];
+		}
+
 		const workMoveRatio =
 			creep.body.filter((part) => part.type === WORK).length /
 			creep.body.filter((part) => part.type === MOVE).length;
@@ -400,6 +509,37 @@ export default class Allocator implements Ticker {
 		});
 		while (this.memory._sourceDepositTimes[sourceId].length > HISTORY_LENGTH) {
 			this.memory._sourceDepositTimes[sourceId].pop();
+		}
+	}
+
+	/**
+	 * Calculates the mean collection time for a given room
+	 * @param room (BaseRoom) The room to calculate the collection time for
+	 */
+	public getAverageCollectionTime(room: BaseRoom) {
+		if (
+			this.memory._collectionTimes[room.name] === undefined ||
+			this.memory._collectionTimes[room.name].length === 0
+		) {
+			return 1;
+		}
+		return mean(this.memory._collectionTimes[room.name]);
+	}
+
+	/**
+	 * Add a new collection time to the room's history.
+	 * If the history is longer than HISTORY_LENGTH, remove the oldest entries.
+	 * @param room (BaseRoom) The room to add a collection time for
+	 * @param time (number) The time taken to collect the energy
+	 */
+	public addCollectionTime(room: BaseRoom, time: number) {
+		if (this.memory._collectionTimes[room.name] === undefined) {
+			this.memory._collectionTimes[room.name] = [];
+		}
+
+		this.memory._collectionTimes[room.name].unshift(time);
+		while (this.memory._collectionTimes[room.name].length > HISTORY_LENGTH) {
+			this.memory._collectionTimes[room.name].pop();
 		}
 	}
 

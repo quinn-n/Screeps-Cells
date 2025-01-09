@@ -4,8 +4,8 @@ import type { RoomID } from "./types";
 
 export interface BaseCreepMemory extends CreepMemory {
 	role: CreepType;
-	currentTask: CreepTask;
-	targetTask: CreepTask;
+	currentTask?: CreepTask;
+	targetTask?: CreepTask;
 	home: RoomID;
 	room: RoomID;
 	spawner: Id<StructureSpawn>;
@@ -20,26 +20,17 @@ export abstract class BaseCreep extends Creep {
 		this.moveTo(new RoomPosition(25, 25, this.memory.home));
 	}
 
-	private _updateTask() {
-		this.currentTask = this.targetTask;
-	}
-
-	/**
-	 * Should return true whenever it's a good time to update the creep's task
-	 */
-	protected abstract get _shouldUpdateTask(): boolean;
-
-	public get targetTask(): CreepTask {
+	public get targetTask() {
 		return this.memory.targetTask;
 	}
-	public set targetTask(newTask: CreepTask) {
+	public set targetTask(newTask: CreepTask | undefined) {
 		this.memory.targetTask = newTask;
 	}
 
-	public get currentTask(): CreepTask {
+	public get currentTask() {
 		return this.memory.currentTask;
 	}
-	protected set currentTask(newTask: CreepTask) {
+	protected set currentTask(newTask: CreepTask | undefined) {
 		this.memory.currentTask = newTask;
 	}
 
