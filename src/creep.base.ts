@@ -1,16 +1,5 @@
-import type { CreepTask, CreepType } from "./creep.types";
+import type { BaseCreepMemory, CreepTask } from "./creep.types";
 import { BaseRoom } from "./room";
-import type { RoomID } from "./types";
-
-export interface BaseCreepMemory extends CreepMemory {
-	role: CreepType;
-	currentTask?: CreepTask;
-	targetTask?: CreepTask;
-	home: RoomID;
-	room: RoomID;
-	spawner: Id<StructureSpawn>;
-	toRecycle: boolean;
-}
 
 export abstract class BaseCreep extends Creep {
 	public abstract tick(): void;

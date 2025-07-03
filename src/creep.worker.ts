@@ -1,19 +1,13 @@
 import _ from "lodash";
-import { BaseCreep, type BaseCreepMemory } from "./creep.base";
+import { BaseCreep } from "./creep.base";
 import {
 	WORKER_TASK_DEPOSITING,
 	WORKER_TASK_HARVESTING,
 	WORKER_TASK_UPGRADING,
-	type WorkerCreepTask,
+	type WorkerCreepMemory,
 } from "./creep.types";
 import { BaseRoom } from "./room";
 import { addSourceDepositTime } from "./allocator";
-
-export interface WorkerCreepMemory extends BaseCreepMemory {
-	targetSource?: Id<Source>;
-	currentTask: WorkerCreepTask;
-	startTime: number;
-}
 
 export class WorkerCreep extends BaseCreep {
 	public static fromCreep(creep: Creep) {

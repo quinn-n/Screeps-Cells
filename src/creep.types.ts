@@ -1,5 +1,4 @@
-import type { BaseCreepMemory } from "./creep.base";
-import type { WorkerCreepMemory } from "./creep.worker";
+import type { RoomID } from "./types";
 
 export type CreepType = ROLE_BASE_CREEP | ROLE_WORKER_CREEP;
 
@@ -22,6 +21,22 @@ export const WORKER_TASK_DEPOSITING: WORKER_TASK_DEPOSITING = "depositing";
 export const WORKER_TASK_UPGRADING: WORKER_TASK_UPGRADING = "upgrading";
 export const WORKER_TASK_BUILDING: WORKER_TASK_BUILDING = "building";
 export const WORKER_TASK_REPAIRING: WORKER_TASK_REPAIRING = "repairing";
+
+export interface BaseCreepMemory extends CreepMemory {
+	role: CreepType;
+	currentTask?: CreepTask;
+	targetTask?: CreepTask;
+	home: RoomID;
+	room: RoomID;
+	spawner: Id<StructureSpawn>;
+	toRecycle: boolean;
+}
+
+export interface WorkerCreepMemory extends BaseCreepMemory {
+	targetSource?: Id<Source>;
+	currentTask: WorkerCreepTask;
+	startTime: number;
+}
 
 export type WorkerCreepTask =
 	| WORKER_TASK_HARVESTING

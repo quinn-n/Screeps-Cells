@@ -1,6 +1,10 @@
 import _ from "lodash";
-import type { BaseCreep, BaseCreepMemory } from "./creep.base";
-import { type CreepType, ROLE_WORKER_CREEP } from "./creep.types";
+import type { BaseCreep } from "./creep.base";
+import {
+	type BaseCreepMemory,
+	type CreepType,
+	ROLE_WORKER_CREEP,
+} from "./creep.types";
 import { WorkerCreep } from "./creep.worker";
 
 /**
