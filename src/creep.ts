@@ -1,5 +1,6 @@
-import type { BaseCreepMemory } from "./creep.base";
-import { ROLE_WORKER_CREEP } from "./creep.types";
+import _ from "lodash";
+import type { BaseCreep, BaseCreepMemory } from "./creep.base";
+import { type CreepType, ROLE_WORKER_CREEP } from "./creep.types";
 import { WorkerCreep } from "./creep.worker";
 
 /**
@@ -15,4 +16,11 @@ export function createCreepInstance(creep: Creep) {
 		default:
 			throw new Error(`Unknown creep role: ${memory.role}`);
 	}
+}
+
+export function getCreepsByRole(role: CreepType): BaseCreep[] {
+	return _.filter(
+		Game.creeps,
+		(creep: Creep) => (creep as BaseCreep).memory.role === role,
+	) as BaseCreep[];
 }

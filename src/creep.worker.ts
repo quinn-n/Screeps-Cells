@@ -1,5 +1,4 @@
 import _ from "lodash";
-import Allocator from "./allocator";
 import { BaseCreep, type BaseCreepMemory } from "./creep.base";
 import {
 	WORKER_TASK_DEPOSITING,
@@ -8,11 +7,12 @@ import {
 	type WorkerCreepTask,
 } from "./creep.types";
 import { BaseRoom } from "./room";
+import { addSourceDepositTime } from "./allocator";
 
 export interface WorkerCreepMemory extends BaseCreepMemory {
 	targetSource?: Id<Source>;
 	currentTask: WorkerCreepTask;
-	depositStartTime: number;
+	startTime: number;
 }
 
 export class WorkerCreep extends BaseCreep {
@@ -29,7 +29,7 @@ export class WorkerCreep extends BaseCreep {
 			const err = this._harvest();
 			if (err !== OK || this.store.getFreeCapacity() === 0) {
 				if (this.targetTask === WORKER_TASK_HARVESTING) {
-					this.depositStartTime = Game.time;
+					this.startTime = Game.time;
 					this.currentTask = WORKER_TASK_DEPOSITING;
 				} else {
 					this.switchToTargetTask();
@@ -48,19 +48,19 @@ export class WorkerCreep extends BaseCreep {
 					return;
 				}
 
-				const timeTaken = Game.time - this.depositStartTime;
+				const timeTaken = Game.time - this.startTime;
 				// If the creep didn't spend any time depositing, storage is full.
 				// So don't save the deposit time.
-				// TODO: Clear task from creep so the allocator can reuse the creep.
 				if (timeTaken === 0) {
+					this.targetTask = undefined;
+					this.switchToTargetTask();
 					return;
 				}
 
-				const allocator = Allocator.Instance;
-				allocator.addSourceDepositTime(
+				addSourceDepositTime(
 					this.memory.targetSource,
 					this,
-					Game.time - this.depositStartTime,
+					Game.time - this.startTime,
 				);
 			}
 		}
@@ -236,12 +236,12 @@ export class WorkerCreep extends BaseCreep {
 		return justFinishedHarvesting || hasNoTask;
 	}
 
-	protected set depositStartTime(time: number) {
-		this.memory.depositStartTime = time;
+	protected set startTime(time: number) {
+		this.memory.startTime = time;
 	}
 
-	protected get depositStartTime() {
-		return this.memory.depositStartTime;
+	protected get startTime() {
+		return this.memory.startTime;
 	}
 
 	public memory: WorkerCreepMemory = this.memory;

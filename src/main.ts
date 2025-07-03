@@ -1,23 +1,18 @@
-import Allocator from "./allocator";
+import _ from "lodash";
 import cleanup from "./cleanup";
 import { createCreepInstance } from "./creep";
 import pixelGenerator from "./pixel.generator";
 import { BaseRoom } from "./room";
+import { allocateCreeps } from "./allocator";
 
 function loop() {
 	cleanup.run();
 
-	tickAllocator();
+	allocateCreeps();
 	tickRooms();
 	tickCreeps();
 
 	// pixelGenerator.run();
-}
-
-function tickAllocator() {
-	const allocator = Allocator.Instance;
-
-	allocator.tick();
 }
 
 function tickRooms() {
