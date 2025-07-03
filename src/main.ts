@@ -1,9 +1,12 @@
 import _ from "lodash";
 import cleanup from "./cleanup";
-import { createCreepInstance } from "./creep";
+import { createCreepInstance, getCreepsByRole } from "./creep";
 import pixelGenerator from "./pixel.generator";
 import { BaseRoom } from "./room";
-import { allocateCreeps } from "./allocator";
+import UpgraderAllocator from "./allocator.upgrader";
+import { ROLE_WORKER_CREEP } from "./creep.types";
+import type { WorkerCreep } from "./creep.worker";
+import HarvesterAllocator from "./allocator.harvester";
 
 function loop() {
 	cleanup.run();
@@ -34,6 +37,48 @@ function tickCreeps() {
 		}
 
 		creep.tick();
+	}
+}
+
+function allocateCreeps() {
+	/*
+	Allocate workers in the following order:
+	  - Harvesters
+	  - Repair
+	  - Constructors
+	  - Upgraders
+	*/
+	for (const room of Object.values(Game.rooms)) {
+		const controller = room.controller;
+
+		if (controller === undefined) {
+			continue;
+		}
+
+		const baseRoom = BaseRoom.fromRoom(room);
+		if (controller.my) {
+			const harvesterAllocator = new HarvesterAllocator();
+			const harvestRatio = (2 * (controller.level ?? 0)) / 8;
+			const success = harvesterAllocator.allocateCreeps(baseRoom, harvestRatio);
+
+			// If failed to allocate any harvesters, clear all worker creep tasks and retry.
+			if (!success) {
+				const localWorkCreeps = _.filter(
+					getCreepsByRole(ROLE_WORKER_CREEP) as WorkerCreep[],
+					(creep) => {
+						return creep.room.name === baseRoom.name;
+					},
+				);
+
+				for (const creep of localWorkCreeps) {
+					creep.targetTask = undefined;
+				}
+				harvesterAllocator.allocateCreeps(baseRoom, harvestRatio);
+			}
+
+			const upgraderAllocator = new UpgraderAllocator();
+			upgraderAllocator.allocateCreeps(baseRoom);
+		}
 	}
 }
 
